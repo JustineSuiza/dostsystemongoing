@@ -105,7 +105,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
             </a>
             <ul className={`sidebar-dropdown list-unstyled collapse ${expandedReports ? 'show' : null}`}>
               <li className="sidebar-item">
-                <Link to="/DOST/Projects" className={`sidebar-link`}>
+                <Link to="/DOST/Projects" className={`sidebar-link ${isActive('/DOST/Projects') ? 'active' : ''}`}>
                   <i className="fa-solid fa-pen" style={{ color: 'transparent' }}></i>
                   {(expandedByToggle || expandedByHover) && <label>Projects</label>}
                 </Link>

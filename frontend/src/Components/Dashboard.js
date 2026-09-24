@@ -305,7 +305,7 @@ const Dashboard = () => {
   let terminatedProjects = [];
   let clearedProjects = [];
   let interminatedProjects = [];
-  let totalProjects = [];
+  let totalProjects = 0;
 
   if (info.length > 0) {
     totalProjects = info.length;
@@ -316,6 +316,60 @@ const Dashboard = () => {
     clearedProjects = info.filter((project) => normalizeStatus(project.status || project.remarks) === 'Cleared');
     interminatedProjects = info.filter((project) => normalizeStatus(project.status || project.remarks) === 'Interminated');
   }
+
+  const projectStatusPercent = (count) =>
+    totalProjects ? ((count / totalProjects) * 100).toFixed(0) : '0';
+
+  const projectStatusSummaryCards = [
+    {
+      id: 'ongoing',
+      label: 'Ongoing',
+      count: ongoingProjects.length,
+      iconClass: 'fa-solid fa-arrows-rotate',
+      iconBg: '#E1F5FE',
+      iconColor: '#03A9F4',
+    },
+    {
+      id: 'new',
+      label: 'New',
+      count: newProjects.length,
+      iconClass: 'fa-regular fa-square-plus',
+      iconBg: '#FFF3E0',
+      iconColor: '#FF9800',
+    },
+    {
+      id: 'completed',
+      label: 'Completed',
+      count: completedProjects.length,
+      iconClass: 'fa-regular fa-circle-check',
+      iconBg: '#E8F5E9',
+      iconColor: '#4CAF50',
+    },
+    {
+      id: 'cleared',
+      label: 'Cleared',
+      count: clearedProjects.length,
+      iconClass: 'fa-solid fa-broom',
+      iconBg: '#E0F7FA',
+      iconColor: '#00ACC1',
+    },
+    {
+      id: 'interminated',
+      label: 'Interminated',
+      count: interminatedProjects.length,
+      iconClass: 'fa-solid fa-hourglass-half',
+      iconBg: '#FFF0F4',
+      iconColor: '#FF6F61',
+    },
+    {
+      id: 'terminated',
+      label: 'Terminated',
+      count: terminatedProjects.length,
+      iconClass: 'fa-solid fa-ban',
+      iconBg: '#FFEBEE',
+      iconColor: '#F44336',
+    },
+  ];
 
   let totalProposals = 0;
   let approvedProposals = [];
@@ -351,11 +405,95 @@ const Dashboard = () => {
   // Combined total: prefer API totalProposals, but if it's zero use sum of local categories
   const combinedTotal = (totalProposals && totalProposals > 0) ? totalProposals : (conceptCount + fullblownCount + iddCount);
 
-  const truncateLabel = (label, maxLength) => {
+  // Denominator for category percentages must be the sum of the same categories,
+  // otherwise percentages won't add up to 100% when API/localStorage counts differ.
+  const categoryTotal = conceptCount + fullblownCount + iddCount;
+  const percentOf = (count) => (categoryTotal ? ((count / categoryTotal) * 100).toFixed(0) : 0);
+
+  const proposalCategorySummaryCards = [
+    {
+      id: 'concept',
+      label: 'Concept Proposal',
+      count: conceptCount,
+      iconClass: 'fa-solid fa-file-lines',
+      iconBg: '#E3F2FD',
+      iconColor: '#1976D2',
+    },
+    {
+      id: 'fullblown',
+      label: 'Fullblown Proposal',
+      count: fullblownCount,
+      iconClass: 'fa-solid fa-file-circle-check',
+      iconBg: '#F3E5F5',
+      iconColor: '#8E24AA',
+    },
+    {
+      id: 'idd',
+      label: 'IDD Proposal',
+      count: iddCount,
+      iconClass: 'fa-solid fa-file-prescription',
+      iconBg: '#E8F5E9',
+      iconColor: '#2E7D32',
+    },
+  ];
+
+  const truncateLabel = (label, maxLength = 20) => {
+    if (!label) return '';
     if (label.length > maxLength) {
       return label.substring(0, maxLength) + '...';
     }
     return label;
+  };
+
+  // Modern executive analytics color palette
+  const CHART_COLORS = {
+    blue: '#3B82F6',
+    blueDark: '#2563EB',
+    emerald: '#10B981',
+    emeraldDark: '#059669',
+    cyan: '#06B6D4',
+    cyanDark: '#0891B2',
+    violet: '#8B5CF6',
+    violetDark: '#7C3AED',
+    amber: '#F59E0B',
+    amberDark: '#D97706',
+    rose: '#EF4444',
+    roseDark: '#DC2626',
+    indigo: '#6366F1',
+    indigoDark: '#4F46E5',
+    pink: '#EC4899',
+    pinkDark: '#DB2777',
+    slate: '#64748B',
+    slateDark: '#334155',
+  };
+
+  const STATUS_COLOR_MAP = {
+    Ongoing: CHART_COLORS.blue,
+    New: CHART_COLORS.emerald,
+    Completed: CHART_COLORS.cyan,
+    Cleared: CHART_COLORS.violet,
+    Interminated: CHART_COLORS.amber,
+    Terminated: CHART_COLORS.rose,
+  };
+
+  const ISP_PALETTE = [
+    '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#6366F1', '#14B8A6',
+    '#F97316', '#84CC16', '#A855F7', '#0EA5E9'
+  ];
+
+  const formatCurrency = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return '₱0';
+    return '₱' + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  };
+
+  const formatCompactCurrency = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return '₱0';
+    const num = Number(val);
+    if (Math.abs(num) >= 1e9) return '₱' + (num / 1e9).toFixed(1) + 'B';
+    if (Math.abs(num) >= 1e6) return '₱' + (num / 1e6).toFixed(1) + 'M';
+    if (Math.abs(num) >= 1e3) return '₱' + (num / 1e3).toFixed(0) + 'K';
+    return '₱' + num.toLocaleString();
   };
 
   const pieChartDataProposals = {
@@ -366,8 +504,10 @@ const Dashboard = () => {
         fullblownCount,
         iddCount
       ],
-      backgroundColor: ['#519DE9', '#7E57C2', '#4CAF50'],
-      hoverBackgroundColor: ['#06C', '#6A1B9A', '#2E7D32']
+      backgroundColor: [CHART_COLORS.blue, CHART_COLORS.violet, CHART_COLORS.emerald],
+      hoverBackgroundColor: [CHART_COLORS.blueDark, CHART_COLORS.violetDark, CHART_COLORS.emeraldDark],
+      borderWidth: 2,
+      borderColor: '#ffffff',
     }]
   };
 
@@ -380,20 +520,25 @@ const Dashboard = () => {
   const conceptStatusLabels = Object.keys(conceptStatusCounts);
   const conceptStatusData = conceptStatusLabels.map(l => conceptStatusCounts[l]);
   const statusColorMap = {
-    'Approved': '#7CC674',
-    'Disapproved': '#C9190B',
-    'Resubmission': '#EF9234',
-    'Under Evaluation': '#519DE9',
-    'Revision': '#8481DD',
-    'Endorsed': '#4CAF50',
-    'For revision': '#F6D173',
-    'Other': '#90A4AE',
-    'Unspecified': '#BDBDBD'
+    'Approved': CHART_COLORS.emerald,
+    'Endorsed': CHART_COLORS.emeraldDark,
+    'Disapproved': CHART_COLORS.rose,
+    'Resubmission': CHART_COLORS.amber,
+    'Under Evaluation': CHART_COLORS.blue,
+    'Revision': CHART_COLORS.violet,
+    'For revision': CHART_COLORS.amberDark,
+    'Other': CHART_COLORS.slate,
+    'Unspecified': '#CBD5E1'
   };
-  const conceptStatusColors = conceptStatusLabels.map(l => statusColorMap[l] || '#90A4AE');
+  const conceptStatusColors = conceptStatusLabels.map(l => statusColorMap[l] || '#94A3B8');
   const pieChartDataConceptStatus = {
     labels: conceptStatusLabels,
-    datasets: [{ data: conceptStatusData, backgroundColor: conceptStatusColors }]
+    datasets: [{
+      data: conceptStatusData,
+      backgroundColor: conceptStatusColors,
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }]
   };
 
   const normalizeFullblownStatus = (value) => {
@@ -423,10 +568,15 @@ const Dashboard = () => {
   }, {});
   const fullblownStatusLabels = Object.keys(fullblownStatusCounts);
   const fullblownStatusData = fullblownStatusLabels.map(l => fullblownStatusCounts[l]);
-  const fullblownStatusColors = fullblownStatusLabels.map(l => statusColorMap[l] || '#90A4AE');
+  const fullblownStatusColors = fullblownStatusLabels.map(l => statusColorMap[l] || '#94A3B8');
   const pieChartDataFullblownStatus = {
     labels: fullblownStatusLabels,
-    datasets: [{ data: fullblownStatusData, backgroundColor: fullblownStatusColors }]
+    datasets: [{
+      data: fullblownStatusData,
+      backgroundColor: fullblownStatusColors,
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }]
   };
 
   // IDD proposal status distribution
@@ -437,10 +587,15 @@ const Dashboard = () => {
   }, {});
   const iddStatusLabels = Object.keys(iddStatusCounts);
   const iddStatusData = iddStatusLabels.map(l => iddStatusCounts[l]);
-  const iddStatusColors = iddStatusLabels.map(l => statusColorMap[l] || '#90A4AE');
+  const iddStatusColors = iddStatusLabels.map(l => statusColorMap[l] || '#94A3B8');
   const pieChartDataIddStatus = {
     labels: iddStatusLabels,
-    datasets: [{ data: iddStatusData, backgroundColor: iddStatusColors }]
+    datasets: [{
+      data: iddStatusData,
+      backgroundColor: iddStatusColors,
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }]
   };
 
   const pieChartData = {
@@ -454,8 +609,58 @@ const Dashboard = () => {
         info.filter(p => normalizeStatus(p.status || p.remarks) === 'Interminated').length,
         info.filter(p => normalizeStatus(p.status || p.remarks) === 'Terminated').length,
       ],
-      backgroundColor: ['#519DE9', '#F6D173', '#7CC674', '#00ACC1', '#FFB74D', '#FF8A80'],
-      hoverBackgroundColor: ['#06C', '#F4C145', '#4CB140', '#00B2C6', '#FF9b21', '#FF6F61']
+      backgroundColor: [
+        STATUS_COLOR_MAP.Ongoing,
+        STATUS_COLOR_MAP.New,
+        STATUS_COLOR_MAP.Completed,
+        STATUS_COLOR_MAP.Cleared,
+        STATUS_COLOR_MAP.Interminated,
+        STATUS_COLOR_MAP.Terminated,
+      ],
+      hoverBackgroundColor: [
+        CHART_COLORS.blueDark,
+        CHART_COLORS.emeraldDark,
+        CHART_COLORS.cyanDark,
+        CHART_COLORS.violetDark,
+        CHART_COLORS.amberDark,
+        CHART_COLORS.roseDark,
+      ],
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }]
+  };
+
+  const statusBarChartData = {
+    labels: ['Ongoing', 'New', 'Completed', 'Cleared', 'Interminated', 'Terminated'],
+    datasets: [{
+      label: 'Projects',
+      data: [
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'Ongoing').length,
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'New').length,
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'Completed').length,
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'Cleared').length,
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'Interminated').length,
+        info.filter(p => normalizeStatus(p.status || p.remarks) === 'Terminated').length,
+      ],
+      backgroundColor: [
+        STATUS_COLOR_MAP.Ongoing,
+        STATUS_COLOR_MAP.New,
+        STATUS_COLOR_MAP.Completed,
+        STATUS_COLOR_MAP.Cleared,
+        STATUS_COLOR_MAP.Interminated,
+        STATUS_COLOR_MAP.Terminated,
+      ],
+      hoverBackgroundColor: [
+        CHART_COLORS.blueDark,
+        CHART_COLORS.emeraldDark,
+        CHART_COLORS.cyanDark,
+        CHART_COLORS.violetDark,
+        CHART_COLORS.amberDark,
+        CHART_COLORS.roseDark,
+      ],
+      borderRadius: 6,
+      borderSkipped: false,
+      maxBarThickness: 38,
     }]
   };
 
@@ -469,56 +674,334 @@ const Dashboard = () => {
         indirectSummaryTotals.forPayment,
         indirectSummaryTotals.anticipatedBalance,
       ],
-      backgroundColor: ['#519DE9', '#F6D173', '#7CC674', '#FF8A65', '#9C27B0'],
-      hoverBackgroundColor: ['#06C', '#F4C145', '#4CB140', '#FF5722', '#7B1FA2']
+      backgroundColor: [CHART_COLORS.blue, CHART_COLORS.amber, CHART_COLORS.emerald, CHART_COLORS.pink, CHART_COLORS.violet],
+      hoverBackgroundColor: [CHART_COLORS.blueDark, CHART_COLORS.amberDark, CHART_COLORS.emeraldDark, CHART_COLORS.pinkDark, CHART_COLORS.violetDark],
+      borderWidth: 2,
+      borderColor: '#ffffff',
     }]
   };
 
-  const options = {
+  // Modern dark slate tooltip
+  const modernTooltip = {
+    backgroundColor: '#0F172A',
+    titleColor: '#F8FAFC',
+    bodyColor: '#F1F5F9',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    padding: { top: 8, bottom: 8, left: 12, right: 12 },
+    cornerRadius: 8,
+    boxPadding: 4,
+    usePointStyle: true,
+    titleFont: { family: "'Inter', 'Segoe UI', sans-serif", size: 12, weight: '600' },
+    bodyFont: { family: "'Inter', 'Segoe UI', sans-serif", size: 12 },
+  };
+
+  const modernDoughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: '68%',
+    spacing: 2,
     plugins: {
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            let label = context.label || '';
-            if (label) {
-              label += ': ';
-            }
-            const value = context.parsed;
-            const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
-            const percentage = ((value / total) * 100).toFixed(2);
-            label += `${value} (${percentage}%)`;
-            return label;
-          }
-        }
-      },
       legend: {
         display: true,
         position: 'bottom',
-        align: 'start',
-        fullSize: 'true',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
       },
+      tooltip: {
+        ...modernTooltip,
+        callbacks: {
+          label: function (context) {
+            const label = context.label || '';
+            const value = context.parsed !== undefined ? context.parsed : context.raw;
+            const total = context.dataset.data.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return ` ${label}: ${Number(value).toLocaleString()} (${percentage}%)`;
+          }
+        }
+      }
     }
   };
 
-  const option = {
+  const modernCurrencyDoughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    spacing: 2,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+      tooltip: {
+        ...modernTooltip,
+        callbacks: {
+          label: function (context) {
+            const label = context.label || '';
+            const value = context.parsed !== undefined ? context.parsed : context.raw;
+            const total = context.dataset.data.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return ` ${label}: ${formatCurrency(value)} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  };
+
+  const modernBarOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: true
-      }
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+      tooltip: modernTooltip,
     },
     scales: {
       x: {
-        stacked: true
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
       },
       y: {
-        stacked: true
-      }
-    }
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#64748B',
+          precision: 0,
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+    },
   };
+
+  const modernCurrencyBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        ...modernTooltip,
+        callbacks: {
+          label: function (context) {
+            const value = context.raw || (context.parsed && context.parsed.y) || 0;
+            return ` ${context.dataset.label || context.label}: ${formatCurrency(value)}`;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+          callback: (value) => formatCompactCurrency(value),
+        },
+      },
+    },
+  };
+
+  const modernStackedRegionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+      tooltip: modernTooltip,
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          autoSkip: true,
+          maxRotation: 45,
+          minRotation: 45,
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 10, weight: '500' },
+        },
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#64748B',
+          precision: 0,
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+    },
+  };
+
+  const modernStackedRegionBudgetOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
+      tooltip: {
+        ...modernTooltip,
+        callbacks: {
+          label: function (context) {
+            const value = context.raw || (context.parsed && context.parsed.y) || 0;
+            return ` ${context.dataset.label}: ${formatCurrency(value)}`;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          autoSkip: true,
+          maxRotation: 45,
+          minRotation: 45,
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 10, weight: '500' },
+        },
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+          callback: (value) => formatCompactCurrency(value),
+        },
+      },
+    },
+  };
+
+  const modernLineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        ...modernTooltip,
+        callbacks: {
+          label: function (context) {
+            const value = context.raw || (context.parsed && context.parsed.y) || 0;
+            return ` Total Budget: ${formatCurrency(value)}`;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          autoSkip: true,
+          maxRotation: 45,
+          minRotation: 45,
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 10, weight: '500' },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+          callback: (value) => formatCompactCurrency(value),
+        },
+      },
+    },
+  };
+
+  // Backwards compatible aliases
+  const options = modernDoughnutOptions;
+  const option = modernStackedRegionOptions;
 
   const getISPData = () => {
     const ispData = {};
@@ -577,16 +1060,15 @@ const Dashboard = () => {
   const inlandBiodiversityData = getInlandBiodiversityData();
 
   const ispChartData = {
-      labels: Object.keys(ispData),
-      datasets: [{
-          data: Object.values(ispData),
-          backgroundColor: ['#519DE9', '#7CC674', '#73C5C5', '#8481DD', '#F6D173', '#C9190B'],
-          hoverBackgroundColor: ['#06C', '#4CB140', '#009596', '#5752D1', '#F4C145', '#A30000']
-      }]
+    labels: Object.keys(ispData),
+    datasets: [{
+      data: Object.values(ispData),
+      backgroundColor: ISP_PALETTE,
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }]
   };
 
-  
-  
   // Extract unique ISP options that include 'Inland Biodiversity'
   const extractIspOptions = () => {
     const uniqueISPs = new Set();
@@ -598,7 +1080,7 @@ const Dashboard = () => {
     });
     return [...uniqueISPs];
   };
-  
+
   // Handle checkbox change for filters
   const handleFilterChange = (event, filter) => {
     if (event.target.checked) {
@@ -607,27 +1089,28 @@ const Dashboard = () => {
       setSelectedFilters(selectedFilters.filter(f => f !== filter));
     }
   };
-  
+
   // useEffect to update ispOptions whenever info changes
   useEffect(() => {
     setIspOptions(extractIspOptions());
   }, [info]);
-  
+
   const generateChartData = (data) => {
     return {
       labels: ['New', 'Ongoing', 'Completed'],
       datasets: [{
         data: [data.new, data.ongoing, data.completed],
-        backgroundColor: ['#F6D173', '#7CC674', '#519DE9'],
-        hoverBackgroundColor: ['#F4C145', '#4CB140', '#06C']
+        backgroundColor: [STATUS_COLOR_MAP.New, STATUS_COLOR_MAP.Ongoing, STATUS_COLOR_MAP.Completed],
+        hoverBackgroundColor: [CHART_COLORS.emeraldDark, CHART_COLORS.blueDark, CHART_COLORS.cyanDark],
+        borderWidth: 2,
+        borderColor: '#ffffff',
       }]
     };
   };
-  
+
   const generateInlandChartData = () => {
     return generateChartData(getInlandBiodiversityData());
   };
-
 
   const calculateTotalBudgetByISP = () => {
     const totalBudgetByISP = {};
@@ -647,7 +1130,7 @@ const Dashboard = () => {
   };
 
   const totalBudgetByISP = calculateTotalBudgetByISP();
-  const truncatedBLabels = Object.keys(totalBudgetByISP).map(label => truncateLabel(label)); // Adjust 15 according to your desired length
+  const truncatedBLabels = Object.keys(totalBudgetByISP).map(label => truncateLabel(label, 16));
 
   const lineChartData = {
     labels: truncatedBLabels,
@@ -655,9 +1138,34 @@ const Dashboard = () => {
       {
         label: 'Total Budget by ISP',
         data: Object.values(totalBudgetByISP),
-        fill: false,
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1,
+        fill: true,
+        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+        borderColor: CHART_COLORS.blue,
+        borderWidth: 2.5,
+        tension: 0.35,
+        pointBackgroundColor: '#FFFFFF',
+        pointBorderColor: CHART_COLORS.blue,
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: CHART_COLORS.blue,
+        pointHoverBorderColor: '#FFFFFF',
+        pointHoverBorderWidth: 2,
+      },
+    ],
+  };
+
+  const ispBudgetBarData = {
+    labels: truncatedBLabels,
+    datasets: [
+      {
+        label: 'Total Budget by ISP',
+        data: Object.values(totalBudgetByISP),
+        backgroundColor: CHART_COLORS.indigo,
+        hoverBackgroundColor: CHART_COLORS.indigoDark,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 32,
       },
     ],
   };
@@ -705,8 +1213,8 @@ const Dashboard = () => {
     let overallTotal = 0;
 
     info.forEach(project => {
-      if (project.releaseData.programmedAmount) {
-        overallTotal += parseFloat(project.releaseData.programmedAmount.replace(/,/g, ''));
+      if (project.releaseData?.programmedAmount) {
+        overallTotal += parseFloat(String(project.releaseData.programmedAmount).replace(/,/g, ''));
       }
     });
 
@@ -717,27 +1225,72 @@ const Dashboard = () => {
     let overallTotal = 0;
 
     info.forEach(project => {
-      if (project.releaseData.actualRelease) {
-        overallTotal += parseFloat(project.releaseData.actualRelease.replace(/,/g, ''));
+      if (project.releaseData?.actualRelease) {
+        overallTotal += parseFloat(String(project.releaseData.actualRelease).replace(/,/g, ''));
       }
     });
 
     return overallTotal;
   };
 
+  const budgetReleaseSummaryCards = [
+    {
+      id: 'overall-budget',
+      label: 'Overall Total Budget',
+      value: calculateBudgetOverallTotal().toLocaleString(),
+      iconClass: 'fa-solid fa-equals',
+      iconBg: '#E0F2F1',
+      iconColor: '#009688',
+    },
+    {
+      id: 'programmed',
+      label: 'Total Programmed Budget',
+      value: calculateProgrammedOverallTotal().toLocaleString(),
+      iconClass: 'fa-solid fa-calculator',
+      iconBg: '#E1F5FE',
+      iconColor: '#03A9F4',
+    },
+    {
+      id: 'actual-releases',
+      label: 'Total Actual Releases',
+      value: calculateActualOverallTotal().toLocaleString(),
+      iconClass: 'fa-solid fa-money-bill-transfer',
+      iconBg: '#FFF3E0',
+      iconColor: '#FF9800',
+    },
+    {
+      id: 'new-budget',
+      label: 'Total for New',
+      value: calculateNewBudgetOverallTotal().toLocaleString(),
+      iconClass: 'fa-regular fa-square-plus',
+      iconBg: '#E8F5E9',
+      iconColor: '#4CAF50',
+    },
+    {
+      id: 'ongoing-budget',
+      label: 'Total for Ongoing',
+      value: calculateOngoingBudgetOverallTotal().toLocaleString(),
+      iconClass: 'fa-solid fa-arrows-rotate',
+      iconBg: '#FFEBEE',
+      iconColor: '#F44336',
+    },
+  ];
+
   const sumOfReleasesData1 = {
     labels: ['New', 'Ongoing', 'Total Budget'],
     datasets: [
       {
-        label: 'Total Budget',
-        borderColor: '#FFF',
-        borderWidth: 1,
-        hoverBorderColor: '#FFF',
+        label: 'Budget',
         data: [
           calculateNewBudgetOverallTotal(),
           calculateOngoingBudgetOverallTotal(),
           calculateBudgetOverallTotal()
-        ]
+        ],
+        backgroundColor: [STATUS_COLOR_MAP.New, STATUS_COLOR_MAP.Ongoing, CHART_COLORS.indigo],
+        hoverBackgroundColor: [CHART_COLORS.emeraldDark, CHART_COLORS.blueDark, CHART_COLORS.indigoDark],
+        borderRadius: 8,
+        borderSkipped: false,
+        maxBarThickness: 52,
       }
     ]
   };
@@ -746,14 +1299,16 @@ const Dashboard = () => {
     labels: ['Programmed Budget', 'Actual Releases'],
     datasets: [
       {
-        label: 'Total Budget',
-        borderColor: '#FFF',
-        borderWidth: 1,
-        hoverBorderColor: '#FFF',
+        label: 'Releases',
         data: [
           calculateProgrammedOverallTotal(),
           calculateActualOverallTotal()
-        ]
+        ],
+        backgroundColor: [CHART_COLORS.blue, CHART_COLORS.emerald],
+        hoverBackgroundColor: [CHART_COLORS.blueDark, CHART_COLORS.emeraldDark],
+        borderRadius: 8,
+        borderSkipped: false,
+        maxBarThickness: 52,
       }
     ]
   };
@@ -841,23 +1396,29 @@ const Dashboard = () => {
       {
         label: 'New',
         data: newCounts,
-        backgroundColor: '#F6D173',
-        hoverBackgroundColor: '#F4C145',
+        backgroundColor: STATUS_COLOR_MAP.New,
+        hoverBackgroundColor: CHART_COLORS.emeraldDark,
         barThickness: 12,
+        borderRadius: 4,
+        borderSkipped: false,
       },
       {
         label: 'Ongoing',
         data: ongoingCounts,
-        backgroundColor: '#519DE9',
-        hoverBackgroundColor: '#06C',
+        backgroundColor: STATUS_COLOR_MAP.Ongoing,
+        hoverBackgroundColor: CHART_COLORS.blueDark,
         barThickness: 12,
+        borderRadius: 4,
+        borderSkipped: false,
       },
       {
         label: 'Completed',
         data: completedCounts,
-        backgroundColor: '#7CC674',
-        hoverBackgroundColor: '#4CB140',
+        backgroundColor: STATUS_COLOR_MAP.Completed,
+        hoverBackgroundColor: CHART_COLORS.cyanDark,
         barThickness: 12,
+        borderRadius: 4,
+        borderSkipped: false,
       },
     ],
   };
@@ -867,8 +1428,22 @@ const Dashboard = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, position: 'bottom' },
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 12,
+          boxWidth: 8,
+          boxHeight: 8,
+          color: '#475569',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        },
+      },
       tooltip: {
+        ...modernTooltip,
         mode: 'index',
         intersect: false,
         callbacks: {
@@ -884,21 +1459,32 @@ const Dashboard = () => {
     scales: {
       x: {
         beginAtZero: true,
+        grid: { display: false, drawBorder: false },
         ticks: {
           autoSkip: true,
           maxRotation: 45,
           minRotation: 45,
           precision: 0,
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 10, weight: '500' },
         }
       },
       y: {
-        ticks: { precision: 0 }
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(226, 232, 240, 0.8)',
+          borderDash: [4, 4],
+          drawBorder: false,
+        },
+        ticks: {
+          precision: 0,
+          color: '#64748B',
+          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
+        }
       }
     },
-    elements: { bar: { borderWidth: 0, maxBarThickness: 24 } }
+    elements: { bar: { borderWidth: 0, maxBarThickness: 24, borderRadius: 4, borderSkipped: false } }
   };
-
-
 
   const projectsByRegionAndStatus = getProjectsByRegionAndStatus();
 
@@ -912,9 +1498,12 @@ const Dashboard = () => {
     datasets: statusLabels.map((status) => ({
       label: status,
       data: regionLabels.map((region) => projectsByRegionAndStatus[region][status] || 0),
+      backgroundColor: status === 'New' ? STATUS_COLOR_MAP.New : status === 'Ongoing' ? STATUS_COLOR_MAP.Ongoing : STATUS_COLOR_MAP.Completed,
+      hoverBackgroundColor: status === 'New' ? CHART_COLORS.emeraldDark : status === 'Ongoing' ? CHART_COLORS.blueDark : CHART_COLORS.cyanDark,
+      borderRadius: 4,
+      borderSkipped: false,
     })),
   };
-
 
   const budgetByRegionAndStatus = getTotalBudgetByRegionAndStatus();
 
@@ -928,6 +1517,10 @@ const Dashboard = () => {
     datasets: statusLabelss.map((status) => ({
       label: status,
       data: regionLabelss.map((region) => budgetByRegionAndStatus[region][status] || 0),
+      backgroundColor: status === 'New' ? STATUS_COLOR_MAP.New : status === 'Ongoing' ? STATUS_COLOR_MAP.Ongoing : STATUS_COLOR_MAP.Completed,
+      hoverBackgroundColor: status === 'New' ? CHART_COLORS.emeraldDark : status === 'Ongoing' ? CHART_COLORS.blueDark : CHART_COLORS.cyanDark,
+      borderRadius: 4,
+      borderSkipped: false,
     })),
   };
 
@@ -1009,118 +1602,83 @@ const Dashboard = () => {
 
       <div className='row pb-4'>
         <div className='col-lg-4'>
-          <div className='dashboard-summary-row pt-4'>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E0F2F1', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-equals fs-5 p-1' style={{ color: '#009688' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{totalProjects}</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total Projects</p>
-                  </div>
+          <div className='dashboard-projects-summary pt-4'>
+            <div className='card radius-10 border dashboard-summary-card dashboard-summary-total-card'>
+              <div className='card-body dashboard-summary-total-body'>
+                <div
+                  className='dashboard-summary-icon dashboard-summary-icon--sm'
+                  style={{ backgroundColor: '#E0F2F1' }}
+                >
+                  <i className='fa-solid fa-equals' style={{ color: '#009688' }}></i>
+                </div>
+                <div className='dashboard-summary-content'>
+                  <p className='dashboard-summary-value dashboard-summary-value--total mb-0 text-dark fw-bold'>
+                    {totalProjects}
+                  </p>
+                  <p className='dashboard-summary-label mb-0 text-secondary'>Total Projects</p>
                 </div>
               </div>
             </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E1F5FE', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-arrows-rotate fs-5 p-1' style={{ color: '#03A9F4' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{ongoingProjects.length} ({((ongoingProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Ongoing</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#FFF3E0', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-regular fa-square-plus fs-5 p-1' style={{ color: '#FF9800' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{newProjects.length} ({((newProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>New</p>
+
+            <div className='dashboard-summary-status-grid'>
+              {projectStatusSummaryCards.map((card) => (
+                <div key={card.id} className='card radius-10 border dashboard-summary-card dashboard-summary-status-card'>
+                  <div className='card-body dashboard-summary-status-body'>
+                    <div
+                      className='dashboard-summary-icon dashboard-summary-icon--sm'
+                      style={{ backgroundColor: card.iconBg }}
+                    >
+                      <i className={card.iconClass} style={{ color: card.iconColor }}></i>
+                    </div>
+                    <p className='dashboard-summary-value mb-1 text-dark fw-bold'>
+                      {card.count} ({projectStatusPercent(card.count)}%)
+                    </p>
+                    <p className='dashboard-summary-label mb-0 text-secondary'>{card.label}</p>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E8F5E9', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-regular fa-circle-check fs-5 p-1' style={{ color: '#4CAF50' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{completedProjects.length} ({((completedProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Completed</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E0F7FA', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-broom fs-5 p-1' style={{ color: '#00ACC1' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{clearedProjects.length} ({((clearedProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Cleared</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#FFF0F4', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-hourglass-half fs-5 p-1' style={{ color: '#FF6F61' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{interminatedProjects.length} ({((interminatedProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Interminated</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#FFEBEE', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-ban fs-5 p-1' style={{ color: '#F44336' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{terminatedProjects.length} ({((terminatedProjects.length / totalProjects) * 100).toFixed()}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Terminated</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
         <div className='col'>
           <div className="row g-3 pt-2 pt-4">
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">New, Ongoing, and Completed Programs/Projects</h6>
-                  <div className="dashboard-chart" style={{ width: '100%', height: '260px' }}>
-                    <Pie data={pieChartData} options={options} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Status Distribution</h6>
+                      <small className="text-secondary">Proportional breakdown</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Doughnut</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Doughnut data={pieChartData} options={modernDoughnutOptions} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">New, Ongoing, and Completed Programs/Projects</h6>
-                  <div className="dashboard-chart" style={{ width: '100%', height: '260px' }}>
-                    <Doughnut data={pieChartData} options={options} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Status Comparison</h6>
+                      <small className="text-secondary">Direct project volume</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Volume</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Bar
+                      data={statusBarChartData}
+                      options={{
+                        ...modernBarOptions,
+                        plugins: {
+                          ...modernBarOptions.plugins,
+                          legend: { display: false }
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -1129,85 +1687,92 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <h6 className='pt-4 pb-4 fw-bold'>Programs/Projects per ISP Summary</h6>
+      <h6 className='pt-4 pb-2 fw-bold'>Programs/Projects per ISP Summary</h6>
       <div className='row g-3 pt-2 pb-4'>
-
-
-      <div className='row g-3 pt-2 pb-4'>
-        <div className="col-lg-3">
-            <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                    <h6 className="card-title fw-bold text-start">New, Ongoing, and Completed Programs/Projects per ISP</h6>
-                    <div className="dashboard-chart" style={{ width: '100%' }}>
-                        <Pie data={ispChartData} options={options} />
-                    </div>
+        <div className="col-lg-3 col-md-6">
+          <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+            <div className="card-body p-0 d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h6 className="card-title fw-bold text-start mb-0">Projects per ISP</h6>
+                  <small className="text-secondary">All ISPs overall</small>
                 </div>
+                <span className="dashboard-chart-badge">{Object.keys(ispData).length} ISPs</span>
+              </div>
+              <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '230px' }}>
+                <Doughnut data={ispChartData} options={modernDoughnutOptions} />
+              </div>
             </div>
+          </div>
         </div>
         {Object.keys(ispPerData).map((isp) => {
-            const remarks = ispPerData[isp];
-            if (isp && remarks && (remarks.new || remarks.ongoing || remarks.completed)) {
-                return (
-                    <div className="col-lg-3 col-md-4 col-sm-6" key={isp}>
-                        <div className="card radius-10 border p-2 h-100">
-                            <div className="card-body text-center">
-                                <h6 className="card-title fw-bold text-start">{isp}</h6>
-                                <div className="dashboard-chart" style={{ width: '100%' }}>
-                                    <Pie data={generateChartData(remarks)} options={options} />
-                                </div>
-                            </div>
-                        </div>
+          const remarks = ispPerData[isp];
+          if (isp && remarks && (remarks.new || remarks.ongoing || remarks.completed)) {
+            const ispTotal = (remarks.new || 0) + (remarks.ongoing || 0) + (remarks.completed || 0);
+            return (
+              <div className="col-lg-3 col-md-4 col-sm-6" key={isp}>
+                <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                  <div className="card-body p-0 d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="card-title fw-bold text-start mb-0 text-truncate" title={isp}>{isp}</h6>
+                      <span className="dashboard-chart-badge">{ispTotal}</span>
                     </div>
-                );
-            } else {
-                return null; // If ISP or remarks are empty, don't render anything
-            }
+                    <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '230px' }}>
+                      <Doughnut data={generateChartData(remarks)} options={modernDoughnutOptions} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          } else {
+            return null;
+          }
         })}
 
-<div className="col-lg-3 col-md-4 col-sm-6">
-    <div className="card radius-10 border p-2 h-100">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start flex-wrap mb-3">
-          <h6 className="card-title fw-bold mb-0">Inland Biodiversity</h6>
-          <div className="dropdown" style={{ fontWeight: 'normal' }}>
-            <button
-              type="button"
-              className="btn border-0"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              data-bs-auto-close="outside"
-            >
-              <i className="fa-solid fa-filter"></i>
-            </button>
-            <ul className="dropdown-menu dropdown-submenu p-2 dropdown-menu-lg-end" style={{ width: '19rem' }}>
-              <label className="pb-2">Select Filters:</label>
-              {ispOptions.map((option, index) => (
-                <div key={index} className="form-check">
-                  <input
-                    type="checkbox"
-                    id={`filterCheckbox-${index}`}
-                    value={option}
-                    checked={selectedFilters.includes(option)}
-                    onChange={(e) => handleFilterChange(e, option)}
-                    className="form-check-input me-2"
-                  />
-                  <label htmlFor={`filterCheckbox-${index}`} className="form-check-label me-4">
-                    {option}
-                  </label>
+        <div className="col-lg-3 col-md-4 col-sm-6">
+          <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+            <div className="card-body p-0 d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-start flex-wrap mb-2">
+                <div>
+                  <h6 className="card-title fw-bold mb-0">Inland Biodiversity</h6>
+                  <small className="text-secondary">Filtered ISP view</small>
                 </div>
-              ))}
-            </ul>
+                <div className="dropdown" style={{ fontWeight: 'normal' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary border-0"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    data-bs-auto-close="outside"
+                  >
+                    <i className="fa-solid fa-filter"></i>
+                  </button>
+                  <ul className="dropdown-menu dropdown-submenu p-2 dropdown-menu-lg-end" style={{ width: '19rem' }}>
+                    <label className="pb-2 fw-semibold">Select Filters:</label>
+                    {ispOptions.map((optionItem, index) => (
+                      <div key={index} className="form-check">
+                        <input
+                          type="checkbox"
+                          id={`filterCheckbox-${index}`}
+                          value={optionItem}
+                          checked={selectedFilters.includes(optionItem)}
+                          onChange={(e) => handleFilterChange(e, optionItem)}
+                          className="form-check-input me-2"
+                        />
+                        <label htmlFor={`filterCheckbox-${index}`} className="form-check-label me-4">
+                          {optionItem}
+                        </label>
+                      </div>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '230px' }}>
+                <Doughnut data={generateInlandChartData()} options={modernDoughnutOptions} />
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="dashboard-chart" style={{ width: '100%', height: '260px' }}>
-          <Pie data={generateInlandChartData()} options={options} />
-        </div>
-      </div>
-    </div>
-  </div>
-
         </div>
       </div>
       <div className="d-flex justify-content-between align-items-center">
@@ -1239,22 +1804,34 @@ const Dashboard = () => {
         </div>
         <div className='col'>
           <div className="row g-3 pt-2 pt-4">
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Total Budget per ISP</h6>
-                  <div className="dashboard-chart" style={{ width: '100%' }}>
-                    <Line data={lineChartData} options={option} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Total Budget Trend per ISP</h6>
+                      <small className="text-secondary">Smooth curve across ISP categories</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Trend</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Line data={lineChartData} options={modernLineOptions} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Total Budget per ISP</h6>
-                  <div className="dashboard-chart" style={{ width: '100%' }}>
-                    <Bar data={lineChartData} options={option} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">ISP Budget Allocation</h6>
+                      <small className="text-secondary">Comparative budget by ISP</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Bar</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Bar data={ispBudgetBarData} options={modernCurrencyBarOptions} />
                   </div>
                 </div>
               </div>
@@ -1271,103 +1848,56 @@ const Dashboard = () => {
       </div>
 
       <div className='row pt-2 pb-4'>
-        <div className=''>
-          <div className='row'>
-            <div className='col'>
-              <div className='card radius-10 border'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='d-flex align-items-center'>
-                    <div className='' style={{ backgroundColor: '#E0F2F1', borderRadius: '50px', padding: '10px' }}>
-                      <i className='fa-solid fa-equals fs-5 p-1' style={{ color: '#009688' }}></i>
+        <div className='col-lg-4'>
+          <div className='dashboard-projects-summary pt-4'>
+            <div className='dashboard-summary-status-grid'>
+              {budgetReleaseSummaryCards.map((card) => (
+                <div key={card.id} className='card radius-10 border dashboard-summary-card dashboard-summary-status-card'>
+                  <div className='card-body dashboard-summary-status-body'>
+                    <div
+                      className='dashboard-summary-icon dashboard-summary-icon--sm'
+                      style={{ backgroundColor: card.iconBg }}
+                    >
+                      <i className={card.iconClass} style={{ color: card.iconColor }}></i>
                     </div>
-                    <div className='ps-4'>
-                      <p className='mb-0 text-dark fs-5 fw-bold'>{calculateBudgetOverallTotal().toLocaleString()}</p>
-                      <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Overall Total Budget</p>
-                    </div>
+                    <p className='dashboard-summary-value mb-1 text-dark fw-bold'>{card.value}</p>
+                    <p className='dashboard-summary-label mb-0 text-secondary'>{card.label}</p>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className='col'>
-              <div className='card radius-10 border'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='d-flex align-items-center'>
-                    <div className='' style={{ backgroundColor: '#E1F5FE', borderRadius: '50px', padding: '10px' }}>
-                      <i className='fa-solid fa-arrows-rotate fs-5 p-1' style={{ color: '#03A9F4' }}></i>
-                    </div>
-                    <div className='ps-4'>
-                      <p className='mb-0 text-dark fs-5 fw-bold'>{calculateProgrammedOverallTotal().toLocaleString()}</p>
-                      <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total Programmed Budget</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='col'>
-              <div className='card radius-10 border'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='d-flex align-items-center'>
-                    <div className='' style={{ backgroundColor: '#FFF3E0', borderRadius: '50px', padding: '10px' }}>
-                      <i className='fa-regular fa-square-plus fs-5 p-1' style={{ color: '#FF9800' }}></i>
-                    </div>
-                    <div className='ps-4'>
-                      <p className='mb-0 text-dark fs-4 fw-bold'>{calculateActualOverallTotal().toLocaleString()}</p>
-                      <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total Actual Releases</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='col'>
-              <div className='card radius-10 border'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='d-flex align-items-center'>
-                    <div className='' style={{ backgroundColor: '#E8F5E9', borderRadius: '50px', padding: '10px' }}>
-                      <i className='fa-regular fa-circle-check fs-5 p-1' style={{ color: '#4CAF50' }}></i>
-                    </div>
-                    <div className='ps-4'>
-                      <p className='mb-0 text-dark fs-4 fw-bold'>{calculateNewBudgetOverallTotal().toLocaleString()}</p>
-                      <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total for New</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='col'>
-              <div className='card radius-10 border'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='d-flex align-items-center'>
-                    <div className='' style={{ backgroundColor: '#FFEBEE', borderRadius: '50px', padding: '10px' }}>
-                      <i className='fa-solid fa-ban fs-5 p-1' style={{ color: '#F44336' }}></i>
-                    </div>
-                    <div className='ps-4'>
-                      <p className='mb-0 text-dark fs-5 fw-bold'>{calculateOngoingBudgetOverallTotal().toLocaleString()}</p>
-                      <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total for Ongoing</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
         <div className='col'>
           <div className="row g-3 pt-2 pt-4">
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Sum of Releases</h6>
-                  <div className="dashboard-chart" style={{ width: '100%' }}>
-                    <Bar data={sumOfReleasesData1} options={option} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Budget by Project Status</h6>
+                      <small className="text-secondary">New vs Ongoing vs Total Allocation</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Status</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Bar data={sumOfReleasesData1} options={modernCurrencyBarOptions} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Sum of Releases</h6>
-                  <div className="dashboard-chart" style={{ width: '100%' }}>
-                    <Bar data={sumOfReleasesData2} options={option} />
+            <div className="col-12 col-xl-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Programmed vs Actual Releases</h6>
+                      <small className="text-secondary">Programmed budget vs actual disbursement</small>
+                    </div>
+                    <span className="dashboard-chart-badge">Disbursement</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '260px' }}>
+                    <Bar data={sumOfReleasesData2} options={modernCurrencyBarOptions} />
                   </div>
                 </div>
               </div>
@@ -1384,50 +1914,68 @@ const Dashboard = () => {
       </div>
 
       <div className='row g-3 pt-2 pb-4'>
-        <div className="col">
-          <div className="card radius-10 border p-2">
-            <div className="card-body text-center">
-              <h6 className="card-title fw-bold text-start">For New, Ongoing, and Completed Programs/Projects</h6>
-              <div className="dashboard-chart" style={{ width: '100%' }}>
+        <div className="col-12 col-xl-6">
+          <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+            <div className="card-body p-0 d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h6 className="card-title fw-bold text-start mb-0">Implementing Agencies</h6>
+                  <small className="text-secondary">Project counts across agencies</small>
+                </div>
+                <span className="dashboard-chart-badge">{agencyLabels.length} Agencies</span>
+              </div>
+              <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '300px' }}>
                 <Bar data={barChartData} options={agencyOptions} />
               </div>
             </div>
           </div>
         </div>
-        <div className="col">
-          <div className="card radius-10 border p-2">
-            <div className="card-body text-center">
-              <h6 className="card-title fw-bold text-start">Per Regions</h6>
-              <div className="dashboard-chart" style={{ width: '100%' }}>
-                <Bar data={regionData} options={option} />
+        <div className="col-12 col-xl-6">
+          <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+            <div className="card-body p-0 d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h6 className="card-title fw-bold text-start mb-0">Projects per Region</h6>
+                  <small className="text-secondary">Status distribution across regions</small>
+                </div>
+                <span className="dashboard-chart-badge">{regionLabels.length} Regions</span>
+              </div>
+              <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '300px' }}>
+                <Bar data={regionData} options={modernStackedRegionOptions} />
               </div>
             </div>
           </div>
         </div>
       </div>
       <div className='row g-3 pt-2 pb-4'>
-        <div className="col">
-          <div className="card radius-10 border p-2">
-            <div className="card-body text-center">
-              <h6 className="card-title fw-bold text-start">GIA Funding Per Regions</h6>
-              <div className="dashboard-chart" style={{ width: '100%' }}>
-                <Bar data={regionDataWithBudget} options={option} />
+        <div className="col-12 col-xl-6">
+          <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+            <div className="card-body p-0 d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h6 className="card-title fw-bold text-start mb-0">GIA Funding Per Region</h6>
+                  <small className="text-secondary">Grants-in-aid budget distribution by region</small>
+                </div>
+                <span className="dashboard-chart-badge">Budget</span>
+              </div>
+              <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '300px' }}>
+                <Bar data={regionDataWithBudget} options={modernStackedRegionBudgetOptions} />
               </div>
             </div>
           </div>
         </div>
-        <div className="col">
-
-        </div>
-      </div>
-
-      <div className='row g-3 pt-2 pb-4'>
-        <div className='col'>
-          <div className='card radius-10 border p-2'>
-            <div className='card-body text-center'>
-              <h6 className='card-title fw-bold text-start'>Indirect Cost Summary Overview</h6>
-              <div className='dashboard-chart' style={{ width: '100%', height: '320px' }}>
-                <Pie data={indirectCostPieData} options={options} />
+        <div className='col-12 col-xl-6'>
+          <div className='card radius-10 border p-3 dashboard-chart-card h-100'>
+            <div className='card-body p-0 d-flex flex-column'>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h6 className='card-title fw-bold text-start mb-0'>Indirect Cost Summary Overview</h6>
+                  <small className="text-secondary">Releases, obligations, and balances</small>
+                </div>
+                <span className="dashboard-chart-badge">Financial</span>
+              </div>
+              <div className='dashboard-chart flex-grow-1' style={{ width: '100%', minHeight: '300px' }}>
+                <Doughnut data={indirectCostPieData} options={modernCurrencyDoughnutOptions} />
               </div>
             </div>
           </div>
@@ -1599,101 +2147,108 @@ const Dashboard = () => {
 
       <div className='row pt-2 pb-4'>
         <div className='col-lg-4'>
-          <div className='dashboard-summary-row pt-4'>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#EEEEEE', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-equals fs-5 p-1' style={{ color: '#000' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{combinedTotal}</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Total Proposals</p>
-                  </div>
+          <div className='dashboard-projects-summary pt-4'>
+            <div className='card radius-10 border dashboard-summary-card dashboard-summary-total-card'>
+              <div className='card-body dashboard-summary-total-body'>
+                <div
+                  className='dashboard-summary-icon dashboard-summary-icon--sm'
+                  style={{ backgroundColor: '#EEEEEE' }}
+                >
+                  <i className='fa-solid fa-equals' style={{ color: '#000' }}></i>
+                </div>
+                <div className='dashboard-summary-content'>
+                  <p className='dashboard-summary-value dashboard-summary-value--total mb-0 text-dark fw-bold'>
+                    {combinedTotal}
+                  </p>
+                  <p className='dashboard-summary-label mb-0 text-secondary'>Total Proposals</p>
                 </div>
               </div>
             </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E3F2FD', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-file-lines fs-5 p-1' style={{ color: '#1976D2' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{conceptCount} ({combinedTotal ? ((conceptCount / combinedTotal) * 100).toFixed(0) : 0}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Concept Proposal</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#F3E5F5', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-file-circle-check fs-5 p-1' style={{ color: '#8E24AA' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{fullblownCount} ({combinedTotal ? ((fullblownCount / combinedTotal) * 100).toFixed(0) : 0}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>Fullblown Proposal</p>
+
+            <div className='dashboard-summary-status-grid'>
+              {proposalCategorySummaryCards.map((card) => (
+                <div key={card.id} className='card radius-10 border dashboard-summary-card dashboard-summary-status-card'>
+                  <div className='card-body dashboard-summary-status-body'>
+                    <div
+                      className='dashboard-summary-icon dashboard-summary-icon--sm'
+                      style={{ backgroundColor: card.iconBg }}
+                    >
+                      <i className={card.iconClass} style={{ color: card.iconColor }}></i>
+                    </div>
+                    <p className='dashboard-summary-value mb-1 text-dark fw-bold'>
+                      {card.count} ({percentOf(card.count)}%)
+                    </p>
+                    <p className='dashboard-summary-label mb-0 text-secondary'>{card.label}</p>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className='dashboard-summary-col'>
-              <div className='card radius-10 border dashboard-summary-card'>
-                <div className='card-body' style={{ padding: isMobile ? '15px' : '25px 20px 25px 35px' }}>
-                  <div className='dashboard-summary-icon' style={{ backgroundColor: '#E8F5E9', borderRadius: '50px', padding: '10px', marginRight: '15px' }}>
-                    <i className='fa-solid fa-file-prescription fs-5 p-1' style={{ color: '#2E7D32' }}></i>
-                  </div>
-                  <div className='dashboard-summary-content'>
-                    <p className='mb-0 text-dark fs-4 fw-bold'>{iddCount} ({combinedTotal ? ((iddCount / combinedTotal) * 100).toFixed(0) : 0}%)</p>
-                    <p className='text-secondary h6' style={{ fontSize: isMobile ? '13px' : '15px' }}>IDD Proposal</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
         <div className='col'>
           <div className="row g-3 pt-2 pt-4">
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Proposals</h6>
-                  <div className="dashboard-chart" style={{ width: '80%', maxHeight: '180px', margin: '0 auto' }}>
-                    <Pie data={pieChartDataProposals} options={options} />
+            <div className="col-12 col-md-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Proposal Distribution</h6>
+                      <small className="text-secondary">By category</small>
+                    </div>
+                    <span className="dashboard-chart-badge">{combinedTotal} Total</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '210px' }}>
+                    <Doughnut data={pieChartDataProposals} options={modernDoughnutOptions} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Concept Proposal</h6>
-                  <div className="dashboard-chart" style={{ width: '70%', maxHeight: '150px', margin: '0 auto' }}>
-                    <Pie data={pieChartDataConceptStatus} options={options} />
+            <div className="col-12 col-md-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Concept Proposal Status</h6>
+                      <small className="text-secondary">Evaluation stages</small>
+                    </div>
+                    <span className="dashboard-chart-badge">{conceptCount}</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '210px' }}>
+                    <Doughnut data={pieChartDataConceptStatus} options={modernDoughnutOptions} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div className="row g-3 pt-3">
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">Fullblown Proposal</h6>
-                  <div className="dashboard-chart" style={{ width: '70%', maxHeight: '150px', margin: '0 auto' }}>
-                    <Pie data={pieChartDataFullblownStatus} options={options} />
+            <div className="col-12 col-md-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">Fullblown Proposal Status</h6>
+                      <small className="text-secondary">Evaluation stages</small>
+                    </div>
+                    <span className="dashboard-chart-badge">{fullblownCount}</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '210px' }}>
+                    <Doughnut data={pieChartDataFullblownStatus} options={modernDoughnutOptions} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="col">
-              <div className="card radius-10 border p-2">
-                <div className="card-body text-center">
-                  <h6 className="card-title fw-bold text-start">IDD Proposal</h6>
-                  <div className="dashboard-chart" style={{ width: '70%', maxHeight: '150px', margin: '0 auto' }}>
-                    <Pie data={pieChartDataIddStatus} options={options} />
+            <div className="col-12 col-md-6">
+              <div className="card radius-10 border p-3 dashboard-chart-card h-100">
+                <div className="card-body p-0 d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="card-title fw-bold text-start mb-0">IDD Proposal Status</h6>
+                      <small className="text-secondary">Evaluation stages</small>
+                    </div>
+                    <span className="dashboard-chart-badge">{iddCount}</span>
+                  </div>
+                  <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '210px' }}>
+                    <Doughnut data={pieChartDataIddStatus} options={modernDoughnutOptions} />
                   </div>
                 </div>
               </div>

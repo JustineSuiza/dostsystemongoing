@@ -28,18 +28,129 @@
   min-width: 0;
 }
 
+.dashboard-chart-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dashboard-chart-card:hover {
+  box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+}
+
 .dashboard-chart {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  min-height: 260px;
+  min-height: 240px;
 }
 
 .dashboard-chart canvas {
   width: 100% !important;
+  max-width: 100% !important;
   height: 100% !important;
 }
 
-/* Summary card responsive fixes */
+.dashboard-chart-badge {
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Programs/Projects Summary: total on top, 6 statuses in 3×2 grid */
+.dashboard-projects-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dashboard-summary-total-card {
+  flex-shrink: 0;
+}
+
+.dashboard-summary-total-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+}
+
+.dashboard-summary-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.dashboard-summary-card {
+  height: 100%;
+  min-width: 0;
+}
+
+.dashboard-summary-status-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.75rem 0.65rem;
+  min-height: 100%;
+}
+
+.dashboard-summary-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.dashboard-summary-icon--sm {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+.dashboard-summary-icon--sm i {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.dashboard-summary-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-summary-value {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  width: 100%;
+}
+
+.dashboard-summary-value--total {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.dashboard-summary-label {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  width: 100%;
+}
+
+/* Legacy summary rows (e.g. proposals section) */
 .dashboard-summary-row {
   display: flex;
   flex-wrap: wrap;
@@ -51,68 +162,37 @@
   min-width: 280px;
 }
 
-.dashboard-summary-card {
-  height: 100%;
-}
-
-.dashboard-summary-card .card-body {
+.dashboard-summary-row .dashboard-summary-card .card-body {
   display: flex;
   align-items: center;
   min-height: 100px;
   flex-wrap: wrap;
 }
 
-.dashboard-summary-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dashboard-summary-content {
-  flex: 1;
-  min-width: 150px;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-}
-
-.dashboard-summary-content p {
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Responsive adjustments for smaller screens */
 @media (max-width: 1200px) {
-  .dashboard-summary-col {
-    flex: 1 1 calc(50% - 0.5rem);
-    min-width: 250px;
+  .dashboard-summary-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
+  .dashboard-summary-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-summary-col {
     flex: 1 1 100%;
     min-width: auto;
   }
-  
-  .dashboard-summary-card .card-body {
-    min-height: auto;
-  }
 }
 
 @media (max-width: 576px) {
+  .dashboard-summary-status-grid {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-summary-col {
     flex: 1 1 100%;
-  }
-  
-  .dashboard-summary-card .card-body {
-    padding: 15px 10px 15px 15px !important;
-  }
-  
-  .dashboard-summary-content {
-    min-width: 0;
   }
 }
 

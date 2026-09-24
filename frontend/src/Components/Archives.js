@@ -68,10 +68,48 @@ const Archives = () => {
     const handleUnarchive = async (item) => {
         try {
             if (item.type === 'Projects') {
-                await axios.post('http://localhost:8080/Projects', {
-                    ...item,
-                    budget: [],
-                });
+                const budget = item.budget && !Array.isArray(item.budget)
+                    ? Object.entries(item.budget).map(([year, amount]) => ({
+                        year: Number(year),
+                        amount: Number(String(amount ?? '').replace(/,/g, '')) || 0,
+                    }))
+                    : (item.budget || []).map((budgetItem) => ({
+                        year: Number(budgetItem.year),
+                        amount: Number(budgetItem.amount) || 0,
+                    }));
+
+                const restoreData = {
+                    projectCode: item.projectCode || '',
+                    programCode: item.programCode || '',
+                    ISP: item.ISP || '',
+                    programTitle: item.programTitle || '',
+                    projectTitle: item.projectTitle || '',
+                    responsiblePerson: item.responsiblePerson || '',
+                    funding: item.funding || '',
+                    implementingAgency: item.implementingAgency || '',
+                    programLeader: item.programLeader || '',
+                    projectLeader: item.projectLeader || '',
+                    emailAddress: item.emailAddress || '',
+                    contactNumber: item.contactNumber || '',
+                    postalAddress: item.postalAddress || '',
+                    cooperatingAgency: item.cooperatingAgency || '',
+                    originalStart: item.originalStart || '',
+                    originalEnd: item.originalEnd || '',
+                    changeStart: item.changeStart || '',
+                    changeImplementationDate: item.changeImplementationDate || '',
+                    firstExtension: item.firstExtension || '',
+                    secondExtension: item.secondExtension || '',
+                    objectives: item.objectives || '',
+                    description: item.description || '',
+                    deliverables: item.deliverables || '',
+                    beneficiaries: item.beneficiaries || '',
+                    status: item.status || '',
+                    remarks: item.remarks || '',
+                    tagging: item.tagging || '',
+                    budget,
+                };
+
+                await axios.post('http://localhost:8080/Projects', restoreData);
                 if (!await handleDelete(item, false)) return;
                 window.dispatchEvent(new Event('projectCreated'));
                 window.dispatchEvent(new Event('archiveUpdated'));
