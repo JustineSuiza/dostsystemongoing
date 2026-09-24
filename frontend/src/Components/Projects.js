@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
@@ -389,20 +389,8 @@ const Projects = ({ sidebarExpanded }) => {
     }
     
 
-    const stickyColumnWidths = { isp: 120, palihan: 180, projectTitle: 200 };
-
     const columns = [
-        { name: 'ISP', selector: (row) => row.ISP, sortable: true, wrap: true, grow: 0, width: '120px', minWidth: '120px' },
-        { name: 'PALIHAN Code(project)', selector: (row) => row.projectCode ?? '', sortable: true, wrap: true, grow: 0, width: '180px', minWidth: '180px' },
-        {
-            name: 'Project Title',
-            selector: (row) => row.projectTitle ?? '',
-            cell: (row) => <ProjectTitleCell title={row.projectTitle ?? ''} />,
-            sortable: true,
-            grow: 0,
-            width: '200px',
-            minWidth: '200px',
-        },
+        { name: 'ISP', selector: (row) => row.ISP, sortable: true, wrap: true, width: '120px', minWidth: '120px' },
         {
             name: 'Program Title',
             selector: (row) => row.programTitle ?? '',
@@ -412,6 +400,15 @@ const Projects = ({ sidebarExpanded }) => {
             minWidth: '200px',
         },
         { name: 'Program Leader', selector: (row) => getProgramLeader(row), sortable: true, wrap: true, width: '180px', minWidth: '180px' },
+        { name: 'PALIHAN Code(project)', selector: (row) => row.projectCode ?? '', sortable: true, wrap: true, width: '180px', minWidth: '180px' },
+        {
+            name: 'Project Title',
+            selector: (row) => row.projectTitle ?? '',
+            cell: (row) => <ProjectTitleCell title={row.projectTitle ?? ''} />,
+            sortable: true,
+            width: '200px',
+            minWidth: '200px',
+        },
         { name: 'Project Leader', selector: (row) => getProjectLeader(row), sortable: true, wrap: true, width: '180px', minWidth: '180px' },
         {
             name: 'Implementing Agency',
@@ -550,10 +547,10 @@ const Projects = ({ sidebarExpanded }) => {
         const exportData = filteredData.map((row, index) => ({
             'No.': index + 1,
             'ISP': row.ISP,
-            'PALIHAN Code(project)': row.projectCode,
-            'Project Title': row.projectTitle,
             'Program Title': row.programTitle,
             'Program Leader': getProgramLeader(row),
+            'PALIHAN Code(project)': row.projectCode,
+            'Project Title': row.projectTitle,
             'Project Leader': getProjectLeader(row),
             'Funding': row.funding,
             'Implementing Agency': row.implementingAgency,
@@ -1175,38 +1172,6 @@ const Projects = ({ sidebarExpanded }) => {
     const closeModal = () => {
         setShowModal(false);
     };
-
-    const projectsTableScrollHeight = isMobile ? '420px' : 'calc(100vh - 280px)';
-
-    const projectsTableCustomStyles = useMemo(
-        () => ({
-            responsiveWrapper: {
-                style: {
-                    overflowX: 'auto',
-                    overflowY: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                    maxHeight: projectsTableScrollHeight,
-                },
-            },
-            tableWrapper: {
-                style: {
-                    display: 'block',
-                    minWidth: 'max-content',
-                },
-            },
-            headRow: {
-                style: {
-                    minWidth: 'max-content',
-                },
-            },
-            rows: {
-                style: {
-                    minWidth: 'max-content',
-                },
-            },
-        }),
-        [projectsTableScrollHeight]
-    );
 
     return (
         <article className={`pt-5 pb-5 ${isMobile ? 'ps-3 pe-3' : isTablet ? 'ps-4 pe-4' : 'pe-5'}`}>
@@ -2282,33 +2247,22 @@ const Projects = ({ sidebarExpanded }) => {
             </div>
 
 
-            <div
-                className="projects-table-wrapper"
-                style={{
-                    paddingLeft: !isMobile && sidebarExpanded ? (isTablet ? '250px' : '300px') : (isMobile ? '0px' : '150px'),
+            <DataTable
+                columns={columns}
+                data={sortedData}
+                pagination
+                responsive
+                highlightOnHover
+                striped
+                paginationPerPage={isMobile ? 5 : 10}
+                paginationRowsPerPageOptions={isMobile ? [5, 10, 15] : [10, 25, 50]}
+                className={!isMobile ? 'pt-5' : ''}
+                style={{ 
+                    paddingLeft: !isMobile && sidebarExpanded ? (isTablet ? '250px' : '300px') : (isMobile ? '0px' : '150px'), 
                     transition: 'padding-left 0.3s',
-                    ['--projects-sticky-col-1']: `${stickyColumnWidths.isp}px`,
-                    ['--projects-sticky-col-2']: `${stickyColumnWidths.isp + stickyColumnWidths.palihan}px`,
+                    fontSize: isMobile ? '12px' : '14px'
                 }}
-            >
-                <DataTable
-                    columns={columns}
-                    data={sortedData}
-                    pagination
-                    responsive
-                    highlightOnHover
-                    striped
-                    fixedHeader
-                    fixedHeaderScrollHeight={projectsTableScrollHeight}
-                    customStyles={projectsTableCustomStyles}
-                    paginationPerPage={isMobile ? 5 : 10}
-                    paginationRowsPerPageOptions={isMobile ? [5, 10, 15] : [10, 25, 50]}
-                    className={`projects-table ${!isMobile ? 'pt-5' : ''}`}
-                    style={{
-                        fontSize: isMobile ? '12px' : '14px',
-                    }}
-                />
-            </div>
+            />
 
             <div
                 className="toast position-absolute start-50 translate-middle-x bg-success"
