@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
@@ -39,6 +40,151 @@ const ProjectTitleCell = ({ title }) => {
         >
             {title}
         </span>
+    );
+};
+
+const ProjectActionsDropdown = ({ row, onView, onEdit, onAddFile, onDelete }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const buttonRef = useRef(null);
+    const menuRef = useRef(null);
+    const [menuStyle, setMenuStyle] = useState({});
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const position = () => {
+            const rect = buttonRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            const menuWidth = 234;
+            const top = rect.bottom + 4;
+            const left = Math.max(8, Math.min(rect.left - menuWidth, window.innerWidth - menuWidth - 8));
+            setMenuStyle({
+                top: `${top}px`,
+                left: `${left}px`,
+                maxHeight: `calc(100vh - ${top + 8}px)`,
+                overflowY: 'auto',
+            });
+        };
+
+        position();
+        window.addEventListener('scroll', position, true);
+        window.addEventListener('resize', position);
+
+        const handleOutsideClick = (e) => {
+            const menu = menuRef.current;
+            const button = buttonRef.current;
+            if (menu && !menu.contains(e.target) && button && !button.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+
+        return () => {
+            window.removeEventListener('scroll', position, true);
+            window.removeEventListener('resize', position);
+            document.removeEventListener('mousedown', handleOutsideClick);
+        };
+    }, [isOpen]);
+
+    return (
+        <>
+            <button
+                ref={buttonRef}
+                className="btn btn-outline rounded-circle"
+                style={{ paddingInline: '11px' }}
+                type="button"
+                aria-expanded={isOpen}
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <i className="fa-solid fa-ellipsis"></i>
+            </button>
+            {isOpen &&
+                createPortal(
+                    <ul
+                        ref={menuRef}
+                        className="dropdown-menu border-0 p-0 m-0 h-auto w-auto shadow-lg text-start show"
+                        style={{ position: 'fixed', zIndex: 1060, minWidth: '250px', ...menuStyle }}
+                    >
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => setIsOpen(false)}>
+                            <div className="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#viewModal" onClick={() => onView(row)}>
+                                <div className='p-1 px-2 pt-1 me-1'>
+                                    <i className="bi bi-info-circle fs-5"></i>
+                                </div>
+                                <div className='d-flex flex-column'>
+                                    <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Project Details</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => setIsOpen(false)}>
+                            <Link to="/DOST/Budgets" state={row.projectTitle} className="text-black">
+                                <div className="d-flex align-items-center">
+                                    <div className='p-1 px-2 pt-1 me-1'>
+                                        <i className="bi bi-cash-coin fs-5"></i>
+                                    </div>
+                                    <div className='d-flex flex-column'>
+                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Budget</div>
+                                    </div>
+                                </div>
+                            </Link>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => setIsOpen(false)}>
+                            <Link to="/DOST/Releases" state={row.projectTitle} className="text-black">
+                                <div className="d-flex align-items-center">
+                                    <div className='p-1 px-2 pt-1 me-1'>
+                                        <i className="bi bi-r-circle fs-5"></i>
+                                    </div>
+                                    <div className='d-flex flex-column'>
+                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Releases</div>
+                                    </div>
+                                </div>
+                            </Link>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => setIsOpen(false)}>
+                            <Link to="/DOST/Counterpart-Funds" state={row.projectTitle} className="text-black">
+                                <div className="d-flex align-items-center">
+                                    <div className='p-1 px-2 pt-1 me-1'>
+                                        <i className="bi bi-wallet2 fs-5"></i>
+                                    </div>
+                                    <div className='d-flex flex-column'>
+                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Counterpart Funds</div>
+                                    </div>
+                                </div>
+                            </Link>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); onEdit(row); }}>
+                            <div className="d-flex align-items-center">
+                                <div className='p-1 px-2 pt-1 me-1'>
+                                    <i className="bi bi-pencil-square fs-5"></i>
+                                </div>
+                                <div className='d-flex flex-column float'>
+                                    <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Edit</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); onAddFile(row); }}>
+                            <div className="d-flex align-items-center">
+                                <div className='p-1 px-2 pt-1 me-1'>
+                                    <i className="bi bi-folder-plus fs-5"></i>
+                                </div>
+                                <div className='d-flex flex-column float'>
+                                    <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Add/Update Files</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); onDelete(row.id); }}>
+                            <div className="d-flex align-items-center">
+                                <div className='p-1 px-2 pt-1 me-1'>
+                                    <i className="bi bi-trash fs-5 text-danger"></i>
+                                </div>
+                                <div className='d-flex flex-column float'>
+                                    <div className='fw-medium text-danger' style={{ fontSize: '13px', paddingTop: '2px' }}>Delete</div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>,
+                    document.body
+                )}
+        </>
     );
 };
 
@@ -448,91 +594,13 @@ const Projects = ({ sidebarExpanded }) => {
         {
             name: 'Actions',
             cell: (row) => (
-                <>
-                    <div className="dropdown dropstart">
-                        <button className="btn btn-outline rounded-circle" style={{ paddingInline: '11px' }} type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i className="fa-solid fa-ellipsis"></i>
-                        </button>
-                        <ul className="dropdown-menu border-0 p-0 m-0 h-auto w-auto shadow-lg text-start">
-                            <li className='m-1 notif-item' style={{ width: '210px' }} data-bs-toggle="modal" data-bs-target="#viewModal" onClick={() => handleViewModal(row)}>
-                                <div className=" d-flex align-items-center">
-                                    <div className='p-1 px-2 pt-1 me-1'>
-                                        <i className="bi bi-info-circle fs-5"></i>
-                                    </div>
-                                    <div className='d-flex flex-column'>
-                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Project Details</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }}>
-                                <Link to="/DOST/Budgets" state={row.projectTitle} className="text-black">
-                                    <div className="d-flex align-items-center">
-                                        <div className='p-1 px-2 pt-1 me-1'>
-                                            <i className="bi bi-cash-coin fs-5"></i>
-                                        </div>
-                                        <div className='d-flex flex-column'>
-                                            <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Budget</div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }}>
-                                <Link to="/DOST/Releases" state={row.projectTitle} className="text-black">
-                                    <div className="d-flex align-items-center">
-                                        <div className='p-1 px-2 pt-1 me-1'>
-                                            <i className="bi bi-r-circle fs-5"></i>
-                                        </div>
-                                        <div className='d-flex flex-column'>
-                                            <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Releases</div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }}>
-                                <Link to="/DOST/Counterpart-Funds" state={row.projectTitle} className="text-black">
-                                    <div className="d-flex align-items-center">
-                                        <div className='p-1 px-2 pt-1 me-1'>
-                                            <i className="bi bi-wallet2 fs-5"></i>
-                                        </div>
-                                        <div className='d-flex flex-column'>
-                                            <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>View Counterpart Funds</div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => handleEditModalOpen(row)}>
-                                <div className=" d-flex align-items-center">
-                                    <div className='p-1 px-2 pt-1 me-1'>
-                                        <i className="bi bi-pencil-square fs-5"></i>
-                                    </div>
-                                    <div className='d-flex flex-column float'>
-                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Edit</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => handleAddFileModalOpen(row)}>
-                                <div className=" d-flex align-items-center">
-                                    <div className='p-1 px-2 pt-1 me-1'>
-                                        <i className="bi bi-folder-plus fs-5"></i>
-                                    </div>
-                                    <div className='d-flex flex-column float'>
-                                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Add/Update Files</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => handleDeleteClick(row.id)}>
-                                <div className=" d-flex align-items-center">
-                                    <div className='p-1 px-2 pt-1 me-1'>
-                                        <i className="bi bi-trash fs-5 text-danger"></i>
-                                    </div>
-                                    <div className='d-flex flex-column float'>
-                                        <div className='fw-medium text-danger' style={{ fontSize: '13px', paddingTop: '2px' }}>Delete</div>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </>
+                <ProjectActionsDropdown
+                    row={row}
+                    onView={handleViewModal}
+                    onEdit={handleEditModalOpen}
+                    onAddFile={handleAddFileModalOpen}
+                    onDelete={handleDeleteClick}
+                />
             ),
             width: '100px'
         },
