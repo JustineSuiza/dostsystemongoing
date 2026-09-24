@@ -371,7 +371,6 @@ const Dashboard = () => {
     },
   ];
 
-  let totalProposals = 0;
   let approvedProposals = [];
   let disapprovedProposals = [];
   let resubmissionProposals = [];
@@ -379,7 +378,6 @@ const Dashboard = () => {
   let revisionProposals = [];
 
   if (proposals && proposals.length > 0) {
-    totalProposals = proposals.length;
     approvedProposals = proposals.filter((project) => project.remarks === 'Approved');
     disapprovedProposals = proposals.filter((project) => project.remarks === 'Disapproved');
     resubmissionProposals = proposals.filter((project) => project.remarks === 'Resubmission');
@@ -402,8 +400,8 @@ const Dashboard = () => {
   const fullblownCount = fullblownProposals.length;
   const iddCount = iddProposals.length;
 
-  // Combined total: prefer API totalProposals, but if it's zero use sum of local categories
-  const combinedTotal = (totalProposals && totalProposals > 0) ? totalProposals : (conceptCount + fullblownCount + iddCount);
+  // Total is the sum of the three proposal categories displayed in the breakdown
+  const combinedTotal = conceptCount + fullblownCount + iddCount;
 
   // Denominator for category percentages must be the sum of the same categories,
   // otherwise percentages won't add up to 100% when API/localStorage counts differ.
