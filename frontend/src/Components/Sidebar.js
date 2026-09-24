@@ -125,7 +125,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
                       </div>
                     </div>
                   </li>
-                  <li className='m-1 notif-item'>
+                  <li className='m-1 notif-item' style={{ display: 'none' }}>
                     <div className=" d-flex align-items-center">
                       <div className='d-flex flex-column float'>
                         <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>
@@ -154,7 +154,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
                   </li>
                 </ul>
               </li>
-              <li className="sidebar-item dropend">
+              <li className="sidebar-item dropend" style={{ display: 'none' }}>
                 <a type='button' className={`sidebar-link`} data-bs-toggle="dropdown" aria-expanded="false">
                   <i className="fa-solid fa-pen" style={{ color: 'transparent' }}></i>
                   {(expandedByToggle || expandedByHover) && <label>Goals <span><i className="fa-solid fa-caret-right ms-5"></i></span></label>}
@@ -180,7 +180,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
                   </li>
                 </ul>
               </li>
-              <li className="sidebar-item dropend">
+              <li className="sidebar-item dropend" style={{ display: 'none' }}>
                 <a type='button' className={`sidebar-link`} data-bs-toggle="dropdown" aria-expanded="false">
                   <i className="fa-solid fa-pen" style={{ color: 'transparent' }}></i>
                   {(expandedByToggle || expandedByHover) && <label>Major <span><i className="fa-solid fa-caret-right ms-5"></i></span></label>}
