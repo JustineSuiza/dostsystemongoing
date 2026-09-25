@@ -8,6 +8,30 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import FilterBudgetModal from './FilterBudgetModal';
 
+const ProjectTitleCell = ({ title }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <span
+            title={title}
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+                display: isExpanded ? 'block' : '-webkit-box',
+                width: '100%',
+                overflow: 'hidden',
+                textOverflow: isExpanded ? 'clip' : 'ellipsis',
+                whiteSpace: isExpanded ? 'normal' : undefined,
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: isExpanded ? 'unset' : 3,
+                overflowWrap: 'anywhere',
+                cursor: 'pointer',
+            }}
+        >
+            {title}
+        </span>
+    );
+};
+
 const Budgets = ({ data, sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
     const [info, setInfo] = useState([]);
@@ -466,8 +490,22 @@ const Budgets = ({ data, sidebarExpanded }) => {
     const columns = [
         { name: 'No.', selector: (row, index) => index + 1, sortable: true, width: '70px' },
         { name: 'ISP', selector: (row) => row.ISP, sortable: true, wrap: true },
-        { name: 'Program Title', selector: (row) => row.programTitle, sortable: true, wrap: true, width: '180px' },
-        { name: 'Project Title', selector: (row) => row.projectTitle, sortable: true, wrap: true, width: '180px' },
+        {
+            name: 'Program Title',
+            selector: (row) => row.programTitle ?? '',
+            cell: (row) => React.createElement(ProjectTitleCell, { title: row.programTitle ?? '' }),
+            sortable: true,
+            wrap: true,
+            width: '180px',
+        },
+        {
+            name: 'Project Title',
+            selector: (row) => row.projectTitle ?? '',
+            cell: (row) => React.createElement(ProjectTitleCell, { title: row.projectTitle ?? '' }),
+            sortable: true,
+            wrap: true,
+            width: '180px',
+        },
         { name: (<div>Implementing Agency</div>), selector: (row) => row.implementingAgency, sortable: true, wrap: true },
         { name: 'Program Leader', selector: (row) => row.programLeader, sortable: true, wrap: true, width: '160px' },
         {
