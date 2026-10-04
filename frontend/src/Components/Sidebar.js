@@ -92,7 +92,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
               </Link>
             </li> */}
           <li className="sidebar-item">
-            <a className={`sidebar-link collapsed w-auto has-dropdown ${isActive('/DOST/Proposals') ? 'active' : ''} ${isActive('/DOST/Projects') ? 'active' : ''} ${isActive('/DOST/Budgets') ? 'active' : ''} ${isActive('/DOST/Investment-Per-Banner-Program') ? 'active' : ''} ${isActive('/DOST/Releases') ? 'active' : ''} ${isActive('/DOST/Counterpart-Funds') ? 'active' : ''} ${isActive('/DOST/Future-SandT-Directions') ? 'active' : ''} ${expandedReports ? 'showw' : null}`} onClick={handleReportClick}>
+            <a className={`sidebar-link collapsed w-auto has-dropdown ${isActive('/DOST/Proposals') ? 'active' : ''} ${isActive('/DOST/Projects') ? 'active' : ''} ${isActive('/DOST/Budgets') ? 'active' : ''} ${isActive('/DOST/Releases') ? 'active' : ''} ${isActive('/DOST/Counterpart-Funds') ? 'active' : ''} ${isActive('/DOST/Future-SandT-Directions') ? 'active' : ''} ${expandedReports ? 'showw' : null}`} onClick={handleReportClick}>
               <i className="fa-solid fa-chart-bar"></i>
               {(expandedByToggle || expandedByHover) && (
                 <label>
@@ -257,24 +257,8 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
                       </div>
                     </div>
                   </li>
-                  <li className='m-1 notif-item'>
-                    <div className=" d-flex align-items-center">
-                      <div className='d-flex flex-column float'>
-                        <div className='fw-medium' style={{ fontSize: '12.5px', paddingTop: '2px' }}>
-                          <Link to="/DOST/Investment-Per-Banner-Program" className={`dropdown-item`} onClick={handleDropdownClick} style={{ width: '200px' }}>Investment per Banner Program</Link>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                  <li className='m-1 notif-item'>
-                    <div className=" d-flex align-items-center">
-                      <div className='d-flex flex-column float'>
-                        <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>
-                          <Link to="/DOST/Indirect-Cost-Summary" className={`dropdown-item`} onClick={handleDropdownClick} style={{ width: '200px' }}>Indirect Cost Summary</Link>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
+
+
                 </ul>
               </li>
             </ul>
