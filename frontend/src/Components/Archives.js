@@ -170,7 +170,9 @@ const Archives = () => {
                                         <th scope="col">Project Name</th>
                                         <th scope="col">Date Archived</th>
                                         <th scope="col">Type</th>
-                                        <th scope="col" colSpan={localStorage.getItem('user_lvl') !== '1' ? 2 : 1}>Action</th>
+                                        {localStorage.getItem('user_lvl') === '0' && (
+                                            <th scope="col" colSpan={2}>Action</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -179,9 +181,11 @@ const Archives = () => {
                                             <td className='w-50'>{item.projectTitle}</td>
                                             <td>{item.created_at}</td> 
                                             <td>{item.type}</td> 
-                                            <td style={{ width: '10px' }}><i className="bi bi-box-arrow-up text-primary" style={{ cursor: 'pointer' }} title="Unarchive" onClick={() => handleUnarchive(item)}></i></td>
-                                            {localStorage.getItem('user_lvl') !== '1' && (
-                                                <td><i className="bi bi-trash-fill text-danger" style={{ cursor: 'pointer' }} title="Delete Permanently" onClick={() => handleDelete(item)}></i></td>
+                                            {localStorage.getItem('user_lvl') === '0' && (
+                                                <>
+                                                    <td style={{ width: '10px' }}><i className="bi bi-box-arrow-up text-primary" style={{ cursor: 'pointer' }} title="Unarchive" onClick={() => handleUnarchive(item)}></i></td>
+                                                    <td><i className="bi bi-trash-fill text-danger" style={{ cursor: 'pointer' }} title="Delete Permanently" onClick={() => handleDelete(item)}></i></td>
+                                                </>
                                             )}
                                         </tr>
                                     ))}
