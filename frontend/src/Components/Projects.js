@@ -192,6 +192,7 @@ const Projects = ({ sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
     const [info, setInfo] = useState([]);
     const [filterValue, setFilterValue] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddFileModalOpen, setIsAddFileModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
@@ -288,7 +289,13 @@ const Projects = ({ sidebarExpanded }) => {
     }
 
     useEffect(() => {
-        if (state) {
+        if (!state) return;
+
+        if (typeof state === 'object' && state.status) {
+            setStatusFilter(state.status);
+            setFilterValue('');
+        } else if (typeof state === 'string') {
+            setStatusFilter('');
             setFilterValue(state);
         }
     }, [state]);
@@ -319,6 +326,7 @@ const Projects = ({ sidebarExpanded }) => {
     const refreshData = () => {
         getInfo();
         setFilterValue('');
+        setStatusFilter('');
     };
 
     const handleDeleteClick = (id) => {
@@ -431,8 +439,20 @@ const Projects = ({ sidebarExpanded }) => {
         if (normalized.includes('ongoing') || normalized === 'ongoing') return 'Ongoing';
         if (normalized.includes('new')) return 'New';
         if (normalized.includes('completed') || normalized.includes('complete')) return 'Completed';
+        if (normalized.includes('cleared')) return 'Cleared';
+        if (normalized.includes('interminat')) return 'Interminated';
         if (normalized.includes('terminated')) return 'Terminated';
         return value;
+    };
+
+    useEffect(() => {
+        if (!statusFilter) return;
+        setInfo(originalInfo.filter((row) => normalizeStatus(row.status || row.remarks) === statusFilter));
+    }, [originalInfo, statusFilter]);
+
+    const clearStatusFilter = () => {
+        setStatusFilter('');
+        setInfo(originalInfo);
     };
 
     const applyFilter = (filterData) => {
@@ -445,13 +465,14 @@ const Projects = ({ sidebarExpanded }) => {
             const matchesProgramTitle = !programTitle || row.programTitle.toLowerCase().includes(programTitle.toLowerCase());
             const matchesResponsiblePerson = !responsiblePerson || row.responsiblePerson.toLowerCase().includes(responsiblePerson.toLowerCase());
             const matchesFunding = !funding || funding.length === 0 || funding.includes(row.funding);
-            const matchesStatus = !status || status.length === 0 || status.includes(normalizeStatus(row.status));
+            const matchesStatus = !status || status.length === 0 || status.includes(normalizeStatus(row.status || row.remarks));
 
             return matchesISP && matchesProgramTitle && matchesResponsiblePerson && matchesFunding && matchesStatus;
         });
 
         console.log('Filtered Data:', filteredData);
 
+        setStatusFilter('');
         setInfo(filteredData);
     };
 
@@ -2149,6 +2170,18 @@ const Projects = ({ sidebarExpanded }) => {
             <div className="d-flex justify-content-between align-items-center">
                 <label className='h5 fw-semibold pt-2'>Projects</label>
                 <div className="d-flex align-items-center">
+                    {statusFilter && (
+                        <span className='badge rounded-pill text-bg-dark d-flex align-items-center gap-2 me-3' style={{ fontSize: '12px' }}>
+                            Status: {statusFilter}
+                            <button
+                                type="button"
+                                className="btn-close"
+                                aria-label="Clear status filter"
+                                style={{ filter: 'invert(1)' }}
+                                onClick={clearStatusFilter}
+                            ></button>
+                        </span>
+                    )}
                     <div className="me-4">
                         <div style={{ position: 'relative' }}>
                             <input

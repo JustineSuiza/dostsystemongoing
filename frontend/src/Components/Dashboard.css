@@ -103,6 +103,17 @@
   min-height: 100%;
 }
 
+.dashboard-summary-status-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-summary-status-card--clickable:hover,
+.dashboard-summary-status-card--clickable:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 0.35rem 0.9rem rgba(15, 23, 42, 0.12);
+}
+
 .dashboard-summary-icon {
   flex-shrink: 0;
   display: flex;

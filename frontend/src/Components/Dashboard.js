@@ -1620,7 +1620,20 @@ const Dashboard = () => {
 
             <div className='dashboard-summary-status-grid'>
               {projectStatusSummaryCards.map((card) => (
-                <div key={card.id} className='card radius-10 border dashboard-summary-card dashboard-summary-status-card'>
+                <div
+                  key={card.id}
+                  role='button'
+                  tabIndex={0}
+                  title={`View ${card.label} projects`}
+                  className='card radius-10 border dashboard-summary-card dashboard-summary-status-card dashboard-summary-status-card--clickable'
+                  onClick={() => navigate('/DOST/Projects', { state: { status: card.label } })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate('/DOST/Projects', { state: { status: card.label } });
+                    }
+                  }}
+                >
                   <div className='card-body dashboard-summary-status-body'>
                     <div
                       className='dashboard-summary-icon dashboard-summary-icon--sm'
