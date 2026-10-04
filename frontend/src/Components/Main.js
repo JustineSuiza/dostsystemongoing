@@ -31,6 +31,8 @@ import ConceptProposalPage from './ConceptProposalPage';
 import FullblownProposalPage from './FullblownProposalPage';
 import IDDProposalPage from './IDDProposalPage';
 
+const COLLAPSED_SIDEBAR_SLOT_WIDTH = '50px';
+
 const Main = () => {
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -45,16 +47,15 @@ const Main = () => {
     };
 
     const openSidebar = () => {
-        setSidebarExpanded(true); 
+        setSidebarExpanded(true);
     };
-    
+
     const closeSidebar = () => {
-        setSidebarExpanded(false); 
+        setSidebarExpanded(false);
     };
-    
 
     const toggleSidebar = () => {
-        setSidebarExpanded(!sidebarExpanded);
+        setSidebarExpanded((prev) => !prev);
     };
 
     return (
@@ -63,38 +64,37 @@ const Main = () => {
                 <header className='z-1'>
                     <Navbar sidebarExpanded={sidebarExpanded} />
                 </header>
-                <aside style={{ width: sidebarExpanded ? '200px' : '50px', transition: 'width 0.3s' }}>
-                    <Sidebar openSidebar={openSidebar} closeSidebar={closeSidebar} toggleSidebar={toggleSidebar} sidebarExpanded={sidebarExpanded} />
+                <aside style={{ width: COLLAPSED_SIDEBAR_SLOT_WIDTH, flexShrink: 0 }}>
+                    <Sidebar openSidebar={openSidebar} closeSidebar={closeSidebar} toggleSidebar={toggleSidebar} />
                 </aside>
-                <article 
-                    style={{ 
-                        flex: '1', 
-                        transition: 'margin-left 0.3s',
-                        width: sidebarExpanded ? 'calc(100% - 200px)' : 'calc(100% - 50px)',
-                         }}>
+                <article
+                    style={{
+                        flex: '1',
+                        minWidth: 0,
+                    }}>
                     <Routes>
                         <Route path="" element={<Dashboard />} />
-                        <Route path="Proposals" element={<Proposals />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Proposals/Concept" element={<ConceptProposalPage />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Proposals/Fullblown" element={<FullblownProposalPage />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Proposals/IDD" element={<IDDProposalPage />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Projects" element={<Projects />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Budgets" element={<Budgets />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Investment-Per-Banner-Program" element={<InvestmentPerBannerProgram />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Indirect-Cost-Summary" element={<IndirectCostSummary />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Goals" element={<Goals />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Gaps" element={<Gaps />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Major" element={<Major />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Major-Accomplishment" element={<MajorAccomplishment />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Major-Programs" element={<MajorPrograms />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Releases" element={<Releases />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Counterpart-Funds" element={<CounterpartFunds />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Future-SandT-Directions" element={<FutureSandTDirections />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Archive" element={<Archives />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Users" element={<Users />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="UserProfile" element={<UserProfile />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="Generate-Report" element={<GenerateReport />} sidebarExpanded={sidebarExpanded} />
-                        <Route path="FileUpload" element={<FileUpload />} sidebarExpanded={sidebarExpanded} />
+                        <Route path="Proposals" element={<Proposals />} />
+                        <Route path="Proposals/Concept" element={<ConceptProposalPage />} />
+                        <Route path="Proposals/Fullblown" element={<FullblownProposalPage />} />
+                        <Route path="Proposals/IDD" element={<IDDProposalPage />} />
+                        <Route path="Projects" element={<Projects />} />
+                        <Route path="Budgets" element={<Budgets />} />
+                        <Route path="Investment-Per-Banner-Program" element={<InvestmentPerBannerProgram />} />
+                        <Route path="Indirect-Cost-Summary" element={<IndirectCostSummary />} />
+                        <Route path="Goals" element={<Goals />} />
+                        <Route path="Gaps" element={<Gaps />} />
+                        <Route path="Major" element={<Major />} />
+                        <Route path="Major-Accomplishment" element={<MajorAccomplishment />} />
+                        <Route path="Major-Programs" element={<MajorPrograms />} />
+                        <Route path="Releases" element={<Releases />} />
+                        <Route path="Counterpart-Funds" element={<CounterpartFunds />} />
+                        <Route path="Future-SandT-Directions" element={<FutureSandTDirections />} />
+                        <Route path="Archive" element={<Archives />} />
+                        <Route path="Users" element={<Users />} />
+                        <Route path="UserProfile" element={<UserProfile />} />
+                        <Route path="Generate-Report" element={<GenerateReport />} />
+                        <Route path="FileUpload" element={<FileUpload />} />
                     </Routes>
                 </article>
                 <BackToTopButton />

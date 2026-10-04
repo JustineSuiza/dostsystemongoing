@@ -89,7 +89,7 @@ const Navbar = ({ sidebarExpanded }) => {
   };
 
   return (
-    <header className='header d-flex justify-content-between align-items-center pe-5 border border-end-0' 
+    <header className='header d-flex justify-content-between align-items-center pe-5 border border-end-0'
     style={{ paddingLeft: sidebarExpanded ? '300px' : '150px', transition: 'padding-left 0.3s' }}>
 
       <img className="logo" src={logo} />

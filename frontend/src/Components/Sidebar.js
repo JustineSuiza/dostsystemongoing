@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Sidebar.css';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import Archives from './Archives';
@@ -9,7 +9,6 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
   const [expandedByHover, setExpandedByHover] = useState(false);
   const [expandedReports, setExpandedReports] = useState(false);
   const [expandedSettings, setExpandedSettings] = useState(false);
-  const [sidebarTriggeredByHover, setSidebarTriggeredByHover] = useState(false);
   const [userLvl, setUserLvl] = useState(localStorage.getItem('user_lvl'));
 
   const handleToggleClick = () => {
@@ -18,42 +17,39 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
       setExpandedReports(false);
       setExpandedSettings(false);
       setExpandedByHover(false);
-      setSidebarTriggeredByHover(false);
       closeSidebar();
     } else {
       setExpandedByToggle(true);
       setExpandedByHover(true);
-      setSidebarTriggeredByHover(false);
       openSidebar();
     }
   };
 
   const handleMouseEnter = () => {
-    if (!expandedByToggle && !sidebarTriggeredByHover) {
+    if (!expandedByToggle) {
       setExpandedByHover(true);
-      //toggleSidebar();
+      openSidebar();
     }
   };
 
   const handleMouseLeave = () => {
-    if (!expandedReports && !expandedByToggle && !expandedSettings) {
-      setExpandedByHover(false);
-      setSidebarTriggeredByHover(false);
-      //toggleSidebar();
-    }
+    if (expandedByToggle) return;
+
+    setExpandedByHover(false);
+    setExpandedReports(false);
+    setExpandedSettings(false);
+    closeSidebar();
   };
 
   const handleReportClick = () => {
     setExpandedReports(!expandedReports);
     setExpandedByHover(true);
-    setSidebarTriggeredByHover(true); 
     openSidebar();
   };
 
   const handleSettingClick = () => {
     setExpandedSettings(!expandedSettings);
     setExpandedByHover(true);
-    setSidebarTriggeredByHover(true);
     openSidebar();
   };
 
@@ -72,11 +68,12 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
     <aside
       className={`sidebar border-end ${expandedByToggle || expandedByHover ? 'showw' : null}`}
       id='sidebar'
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className='header-toggle' onClick={handleToggleClick}>
         <i className={`fas fa-bars ${expandedByToggle || expandedByHover ? 'fa-solid fa-xmark' : null}`}></i>
       </div>
-      {/* <nav onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}> */}
       <nav>
         <ul className="sidebar-nav">
           <li className="sidebar-item">
