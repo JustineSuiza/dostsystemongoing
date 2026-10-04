@@ -74,7 +74,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
       id='sidebar'
     >
       <div className='header-toggle' onClick={handleToggleClick}>
-        <i className={`fas fa-bars ${expandedByToggle || expandedByHover ? 'fa-solid fa-xmark' : null}`} style={{ color: '#313638' }}></i>
+        <i className={`fas fa-bars ${expandedByToggle || expandedByHover ? 'fa-solid fa-xmark' : null}`}></i>
       </div>
       {/* <nav onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}> */}
       <nav>

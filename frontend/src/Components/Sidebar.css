@@ -14,6 +14,19 @@ body {
   --first-color: #09090b;
   --first-color-alt: #fff;
   --white-color: #fff;
+
+  /* Sidebar palette: dark navy paired with white and light blue */
+  --navy-900: #0a1c33;
+  --navy-800: #0f2542;
+  --navy-700: #16325a;
+  --sidebar-bg: var(--navy-800);
+  --sidebar-border: rgba(143, 195, 242, 0.22);
+  --sidebar-text: #ffffff;
+  --sidebar-icon: rgba(255, 255, 255, 0.82);
+  --sidebar-accent: #8fc3f2;
+  --sidebar-accent-strong: #b6d9f8;
+  --sidebar-accent-soft: rgba(143, 195, 242, 0.14);
+  --sidebar-active-text: var(--navy-900);
 }
 
 * {
@@ -46,8 +59,13 @@ ul {
 .header-toggle {
   font-size: 1.50rem;
   cursor: pointer;
-  color: #fff;
+  color: var(--sidebar-text);
   padding: 1rem 1.8rem;
+  transition: color 0.2s ease;
+}
+
+.header-toggle:hover {
+  color: var(--sidebar-accent);
 }
 
 .sidebar {
@@ -56,7 +74,10 @@ ul {
   left: -30%;
   height: 100vh;
   width: var(--nav-width);
-  background-color: var(--first-color-alt);
+  background-color: var(--sidebar-bg);
+  background-image: linear-gradient(180deg, var(--navy-700) 0%, var(--navy-800) 45%, var(--navy-900) 100%);
+  border-right-color: var(--sidebar-border);
+  box-shadow: 4px 0 18px rgba(10, 28, 51, 0.18);
   transition: 0.3s;
   z-index: 1;
 }
@@ -65,25 +86,33 @@ ul {
   padding: 0.8rem 1.1rem;
   border-radius: 8px;
   margin-inline: 12px;
-  color: var(--first-color);
+  color: var(--sidebar-text);
   display: block;
   font-size: 0.9rem;
   white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease;
   label {
     cursor: pointer;
   }
 }
 
 .sidebar-link:hover {
-  /* border-left: 3px solid #48C4D3; */
   transition: 0.1s;
-  color: #8cc63e;
+  color: var(--sidebar-accent-strong);
+  background-color: var(--sidebar-accent-soft);
 }
 
 .sidebar-link i {
   font-size: 1.1rem;
   margin-right: 2rem;
   padding-top: .40rem;
+  color: var(--sidebar-icon);
+  transition: color 0.2s ease;
+}
+
+.sidebar-link:hover i,
+.sidebar-link:focus-visible i {
+  color: var(--sidebar-accent);
 }
 
 .sidebar-nav {
@@ -140,14 +169,19 @@ ul {
   font-size: 1.25rem;
 }
 
-.active {
-  color: #fff;
-  background-color: #8cc63e;
-  /* border-left: 3px solid #48C4D3; */
+.sidebar .active {
+  color: var(--sidebar-active-text);
+  background-color: var(--sidebar-accent);
+  box-shadow: 0 4px 12px rgba(10, 28, 51, 0.35);
 }
 
-.active:hover {
-  color: #fff;
+.sidebar .active:hover {
+  color: var(--sidebar-active-text);
+  background-color: var(--sidebar-accent-strong);
+}
+
+.sidebar .active i {
+  color: var(--sidebar-active-text);
 }
 
 .dropdown-menu {
@@ -165,6 +199,15 @@ ul.dropdown-menu li .dropdown-item:hover {
   background-color: transparent !important;
   color: #000;
   cursor: pointer;
+}
+
+/* Popovers stay white so they read clearly next to the navy sidebar */
+.sidebar .dropend > .dropdown-menu {
+  color: #1f2937;
+}
+
+.sidebar .dropend > .dropdown-menu .dropdown-item:hover {
+  color: var(--navy-700);
 }
 
 /* Rotate the caret while the popover is open */
