@@ -2219,7 +2219,7 @@ const Projects = ({ sidebarExpanded }) => {
                         <button type="button" className="btn border-0 position-relative" style={{ width: '40px' }} data-bs-toggle="dropdown" aria-expanded="false">
                             <i className="fa-solid fa-bell fs-5"></i>
                         </button>
-                        <ul className="dropdown-menu dropdown-menu-lg-end border-0 p-0 w-25 h-auto shadow-lg">
+                        <ul className="dropdown-menu dropdown-menu-lg-end border-0 p-0 w-25 h-auto shadow-lg notif-dropdown">
                             <li>
                                 <h5 className='p-3 fw-bold'>Notifications</h5>
                                 {allPendingProposals.length > 0 ? (

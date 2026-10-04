@@ -455,7 +455,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                         autoComplete='off'
                     />
                     <ul
-                        className={`dropdown-menu p-2 ${getColumnTitles().length > 10 ? 'scrollable-dropdown' : ''}`}
+                        className={`dropdown-menu p-2 filter-dropdown ${getColumnTitles().length > 10 ? 'scrollable-dropdown' : ''}`}
                         style={{
                             marginTop: '-20px',
                             minWidth: '280px',
@@ -499,7 +499,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                             </span>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
-                        <ul className="dropdown-menu p-2" style={{ minWidth: '100%' }}>
+                        <ul className="dropdown-menu p-2 filter-dropdown" style={{ minWidth: '100%' }}>
                             {uniqueYears
                                 .sort((a, b) => a - b)
                                 .map((year, index) => (
@@ -539,7 +539,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                             </span>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
-                        <ul className="dropdown-menu p-2" style={{ minWidth: '100%' }}>
+                        <ul className="dropdown-menu p-2 filter-dropdown" style={{ minWidth: '100%' }}>
                             {['New', 'On-going', 'Completed', 'Liquidated', 'Ongoing Liquidation', 'Unliquidated', 'Cleared', 'Interminated', 'Terminated'].map((status, index) => (
                                 <li key={index}>
                                     <div className="form-check">
@@ -577,7 +577,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                             </span>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
-                        <ul className="dropdown-menu p-2" style={{ minWidth: '100%' }}>
+                        <ul className="dropdown-menu p-2 filter-dropdown" style={{ minWidth: '100%' }}>
                             {['Smart', 'Climate change', 'Biodive'].map((tag, index) => (
                                 <li key={index}>
                                     <div className="form-check">
@@ -615,7 +615,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                             </span>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
-                        <ul className="dropdown-menu p-2" style={{ minWidth: '100%' }}>
+                        <ul className="dropdown-menu p-2 filter-dropdown" style={{ minWidth: '100%' }}>
                             {['PCAARRD GIA', 'DOST GIA'].map((funding, index) => (
                                 <li key={index}>
                                     <div className="form-check">
@@ -653,7 +653,7 @@ export const GenerateReport = ({ sidebarExpanded }) => {
                             </span>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
-                        <ul className="dropdown-menu p-2" style={{ minWidth: '100%' }}>
+                        <ul className="dropdown-menu p-2 filter-dropdown" style={{ minWidth: '100%' }}>
                             {[
                                 'Region I (Ilocos Region)',
                                 'Region II (Cagayan Valley)',
