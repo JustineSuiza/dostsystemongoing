@@ -48,10 +48,17 @@
   box-sizing: border-box;
 }
 
-/* Chart.js owns the canvas box when maintainAspectRatio is false.
-   Forcing width/height here desyncs the drawing surface from the
-   displayed size and makes charts shift when the sidebar resizes. */
+/* The canvas is taken out of flow so it cannot feed its own size back
+   into the flex card-body. With maintainAspectRatio: false, Chart.js
+   sizes the canvas from the container box, and an in-flow canvas makes
+   that measurement self-referential: the chart grows the container,
+   which grows the chart. That drift is what pushed the graphs down
+   when the sidebar changed the card width. */
 .dashboard-chart canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
   max-width: 100%;
 }
 
