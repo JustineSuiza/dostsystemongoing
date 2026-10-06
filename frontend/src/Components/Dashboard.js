@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import DataTable from 'react-data-table-component';
 import './Dashboard.css';
+import './DecisionSupport.css';
+import DecisionSupportPanel from './DecisionSupportPanel';
 import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, registerables } from "chart.js";
 import { Tooltip as ReactTooltip, Tooltip } from 'react-tooltip';
@@ -2284,6 +2286,17 @@ const Dashboard = ({ sidebarExpanded }) => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="d-flex justify-content-between align-items-center">
+        <h6 className='pt-4 fw-bold'>Decision Support</h6>
+        <small className="text-secondary d-none d-md-inline">
+          Projects flagged for review by the automated checks
+        </small>
+      </div>
+
+      <div className='pb-4'>
+        <DecisionSupportPanel />
       </div>
     </article>
   );

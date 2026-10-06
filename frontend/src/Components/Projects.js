@@ -10,7 +10,7 @@ import EditProjectModal from './EditProjectModal';
 import FilterProjectModal from './FilterProjectModal';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AddProjectFilesModal from './AddProjectFilesModal';
 import ImageModal from './ImageModal';
 import FileModal from './FileModal';
@@ -195,6 +195,9 @@ const Projects = ({ sidebarExpanded }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddFileModalOpen, setIsAddFileModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
+    // Tracks a project opened from outside this page so the Bootstrap modal
+    // can be shown programmatically once its content is rendered.
+    const shouldOpenModalRef = useRef(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [availableYears, setAvailableYears] = useState([]);
     const [availableISP, setAvailableISP] = useState([]);
@@ -234,6 +237,7 @@ const Projects = ({ sidebarExpanded }) => {
     }, []);
 
     const location = useLocation();
+    const navigate = useNavigate();
     const state = location.state;
 
     const handleYearChange = (event) => {
@@ -395,7 +399,39 @@ const Projects = ({ sidebarExpanded }) => {
         checkNearProposals(originalInfo);
         checkDueProposals(originalInfo);
     }, [originalInfo]);
-    
+
+    // Opens a project requested from another page (e.g. the Decision Support
+    // panel on the Dashboard). Consumed once, then cleared from history state
+    // so revisiting the page does not reopen it.
+    useEffect(() => {
+        const focusId = location.state?.focusProjectId;
+        if (!focusId || !originalInfo.length) return;
+
+        // Projects/ serialises ids as strings while the Decision Support
+        // endpoint returns numbers, so compare as strings rather than with
+        // === or the lookup silently fails.
+        const match = originalInfo.find((row) => String(row.id) === String(focusId));
+        if (match) {
+            shouldOpenModalRef.current = true;
+            setSelectedProject(match);
+        }
+
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.state, location.pathname, navigate, originalInfo]);
+
+    // The Project Details modal is a Bootstrap modal: clicking a row opens it
+    // through data-bs-toggle. Nothing triggers that when the project was opened
+    // from another page, so show it once the content is in place.
+    useEffect(() => {
+        if (!selectedProject || !shouldOpenModalRef.current) return;
+
+        const element = document.getElementById('viewModal');
+        if (!element || !window.bootstrap?.Modal) return;
+
+        window.bootstrap.Modal.getOrCreateInstance(element).show();
+        shouldOpenModalRef.current = false;
+    }, [selectedProject]);
+
     const allPendingProposals = [...nearProposals, ...dueProposals];
     
 

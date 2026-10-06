@@ -1,0 +1,172 @@
+/* Decision Support — additive styling for the existing dashboard/cards.
+   Uses the same radius-10 / border / card vocabulary already in use so the
+   new section reads as part of the existing system. */
+
+.ds-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.ds-loading {
+  padding: 1.25rem 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+/* ---- summary stat tiles ---- */
+.ds-stat {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  height: 100%;
+}
+
+.ds-stat-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.ds-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ds-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- flagged project list ---- */
+.ds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ds-row {
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  background: #ffffff;
+}
+
+.ds-code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+}
+
+.ds-title {
+  margin-top: 0.3rem;
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ds-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.ds-detail {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 0.6rem;
+}
+
+.ds-detail-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.ds-reasons,
+.ds-actions {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.83rem;
+  color: #1e293b;
+}
+
+.ds-reasons li,
+.ds-actions li {
+  margin-bottom: 0.35rem;
+}
+
+.ds-reason-text {
+  display: block;
+}
+
+.ds-evidence {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+  height: 100%;
+  background: #f8fafc;
+}
+
+.ds-evidence-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ds-evidence-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.ds-gaps {
+  font-size: 0.76rem;
+  color: #b54708;
+  background: #fffaeb;
+  border: 1px solid #fedf89;
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+}
+
+.ds-disclaimer {
+  font-size: 0.74rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+
+/* ---- Project Details variant ---- */
+.ds-project-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ds-project-note {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+}
+
+.ds-free-text {
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 12rem;
+  overflow-y: auto;
+}

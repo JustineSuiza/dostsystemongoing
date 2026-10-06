@@ -8,6 +8,10 @@ use CodeIgniter\Router\RouteCollection;
 // $routes->get('/', 'Home::index');
 $routes->resource('Proposals');
 $routes->resource('Projects');
+
+// Decision Support: read-only rule-based analysis over existing project data.
+$routes->get('DecisionSupport/summary', 'DecisionSupport::summary');
+$routes->get('DecisionSupport/project/(:num)', 'DecisionSupport::project/$1');
 $routes->resource('Releases');
 $routes->resource('CounterpartFund');
 $routes->resource('SixPS');
