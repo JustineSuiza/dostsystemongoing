@@ -74,7 +74,7 @@ const normalizeStatus = (remarks) => {
   return remarks;
 };
 
-const Dashboard = () => {
+const Dashboard = ({ sidebarExpanded }) => {
   const [info, setInfo] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [indirectSummaryTotals, setIndirectSummaryTotals] = useState({
@@ -85,6 +85,7 @@ const Dashboard = () => {
     anticipatedBalance: 0,
   });
   const mapContainerRef = useRef(null);
+  const chartContainerRef = useRef(null);
   const [selectedYears, setSelectedYears] = useState([]);
   const [selectedYearsProposal, setSelectedYearsProposal] = useState([]);
   const [filteredInfo, setFilteredInfo] = useState([]);
@@ -110,6 +111,36 @@ const Dashboard = () => {
     
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // The sidebar animates its width over 0.3s. Chart.js reads the container
+  // size through a ResizeObserver that only settles on the final frame, so
+  // charts can end up drawn at a stale size. Re-measure once the transition
+  // completes and once more on the next frame.
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    let frame;
+    const resizeCharts = () => {
+      container.querySelectorAll('canvas').forEach((canvas) => {
+        const chart = ChartJS.getChart(canvas);
+        if (chart) {
+          chart.resize();
+          chart.update('none');
+        }
+      });
+    };
+
+    const timer = setTimeout(() => {
+      resizeCharts();
+      frame = requestAnimationFrame(resizeCharts);
+    }, 320);
+
+    return () => {
+      clearTimeout(timer);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [sidebarExpanded]);
 
   const navigate = useNavigate();
 
@@ -1538,7 +1569,7 @@ const Dashboard = () => {
   const regionProjects = calculateRegionWiseProjects();
 
   return (
-    <article className={`dashboard-container pt-5 pb-5 ${isMobile ? 'ps-3 pe-3' : isTablet ? 'ps-4 pe-4' : 'pe-5'}`}>
+    <article ref={chartContainerRef} className={`dashboard-container pt-5 pb-5 ${isMobile ? 'ps-3 pe-3' : isTablet ? 'ps-4 pe-4' : 'pe-5'}`}>
 
       <div className="d-flex justify-content-between align-items-center">
         <label className='h4 py-2 fw-bold'>Dashboard</label>

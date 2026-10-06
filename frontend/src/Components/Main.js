@@ -73,7 +73,7 @@ const Main = () => {
                         width: sidebarExpanded ? 'calc(100% - 200px)' : 'calc(100% - 50px)',
                          }}>
                     <Routes>
-                        <Route path="" element={<Dashboard />} />
+                        <Route path="" element={<Dashboard sidebarExpanded={sidebarExpanded} />} />
                         <Route path="Proposals" element={<Proposals />} sidebarExpanded={sidebarExpanded} />
                         <Route path="Proposals/Concept" element={<ConceptProposalPage />} sidebarExpanded={sidebarExpanded} />
                         <Route path="Proposals/Fullblown" element={<FullblownProposalPage />} sidebarExpanded={sidebarExpanded} />

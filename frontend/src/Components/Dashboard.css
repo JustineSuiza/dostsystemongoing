@@ -42,17 +42,17 @@
 
 .dashboard-chart {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   min-height: 240px;
+  flex: 1 1 auto;
+  box-sizing: border-box;
 }
 
+/* Chart.js owns the canvas box when maintainAspectRatio is false.
+   Forcing width/height here desyncs the drawing surface from the
+   displayed size and makes charts shift when the sidebar resizes. */
 .dashboard-chart canvas {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 100% !important;
+  max-width: 100%;
 }
 
 .dashboard-chart-badge {
