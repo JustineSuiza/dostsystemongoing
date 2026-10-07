@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import CurrencyInput from 'react-currency-input-field';
+import { updateImportedRow } from '../firestoreImports';
 
 const remarkOptions = [
     'No Terminal Report',
@@ -565,8 +565,10 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
         const formattedTReview = terminalReview.map(formatValue).join(', ');
 
         const isBudgetChanged = project.budgetArray && JSON.stringify(budget) !== JSON.stringify(project.budgetArray);
-        const isTotalBudgetChanged = parseFloat(totalBudget) !== parseFloat(project.totalBudget?.replace(/,/g, '') || '0');
-        const isSixPsChanged = project.sixPsArray && JSON.stringify(sixPs) !== JSON.stringify(project.sixPsArray);
+        const parseBudgetAmount = (value) => Number(String(value ?? '').replace(/,/g, '')) || 0;
+        const isTotalBudgetChanged = parseBudgetAmount(totalBudget) !== parseBudgetAmount(project.totalBudget);
+        const originalSixPs = project.sixPsArray || Object.values(project.sixPs || {});
+        const isSixPsChanged = JSON.stringify(sixPs) !== JSON.stringify(originalSixPs);
 
 
         const isChanged =
@@ -636,7 +638,32 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
         }
 
         try {
-            await axios.patch(`http://localhost:8080/Projects/${project.id}`, {
+            const updatedSixPs = sixPs.map(item => {
+                const pubEntry = publicationEntries[item.year] ? publicationEntries[item.year][0] : null;
+                const prodEntry = productEntries[item.year] ? productEntries[item.year][0] : null;
+                const patEntry = patentEntries[item.year] ? patentEntries[item.year][0] : null;
+                const peopleEntry = peopleEntries[item.year] ? peopleEntries[item.year][0] : null;
+                const placesEntry = placesEntries[item.year] ? placesEntries[item.year][0] : null;
+                const policyEntry = policyEntries[item.year] ? policyEntries[item.year][0] : null;
+
+                return {
+                    ...item,
+                    targetPublication: pubEntry ? pubEntry.target : item.targetPublication,
+                    actualaccomplishmentPeer: pubEntry ? pubEntry.actual : item.actualaccomplishmentPeer,
+                    targetProduct: prodEntry ? prodEntry.target : item.targetProduct,
+                    techName: prodEntry ? prodEntry.actual : item.techName,
+                    targetPatent: patEntry ? patEntry.target : item.targetPatent,
+                    techNamePro: patEntry ? patEntry.actual : item.techNamePro,
+                    targetPeople: peopleEntry ? peopleEntry.target : item.targetPeople,
+                    namesBS: peopleEntry ? peopleEntry.actual : item.namesBS,
+                    targetPlaces: placesEntry ? placesEntry.target : item.targetPlaces,
+                    cooperators: placesEntry ? placesEntry.actual : item.cooperators,
+                    targetPolicy: policyEntry ? policyEntry.target : item.targetPolicy,
+                    policyRecommendation: policyEntry ? policyEntry.actual : item.policyRecommendation,
+                };
+            });
+
+            await updateImportedRow('projects', project.id, {
                 ISP: ISP,
                 programCode: programCode,
                 programTitle: programTitle,
@@ -683,46 +710,7 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
                 strategy: strategy,
                 tagging: tagging,
                 remarks: remarks,
-            });
-
-            await axios.patch(`http://localhost:8080/SixPS/${project.id}`, {
-                sixPs: sixPs.map(item => {
-                    const pubEntry = publicationEntries[item.year] ? publicationEntries[item.year][0] : null;
-                    const prodEntry = productEntries[item.year] ? productEntries[item.year][0] : null;
-                    const patEntry = patentEntries[item.year] ? patentEntries[item.year][0] : null;
-                    const peopleEntry = peopleEntries[item.year] ? peopleEntries[item.year][0] : null;
-                    const placesEntry = placesEntries[item.year] ? placesEntries[item.year][0] : null;
-                    const policyEntry = policyEntries[item.year] ? policyEntries[item.year][0] : null;
-                    
-                    return {
-                        year: item.year,
-                        targetPublication: pubEntry ? pubEntry.target : item.targetPublication,
-                        actualaccomplishmentPeer: pubEntry ? pubEntry.actual : item.actualaccomplishmentPeer,
-                        actualaccomplishmentJournal: item.actualaccomplishmentJournal,
-                        actualaccomplishmentPresented: item.actualaccomplishmentPresented,
-                        details: item.details,
-                        actualaccomplishmentIEC: item.actualaccomplishmentIEC,
-                        targetProduct: prodEntry ? prodEntry.target : item.targetProduct,
-                        techName: prodEntry ? prodEntry.actual : item.techName,
-                        techDescription: item.techDescription,
-                        targetPatent: patEntry ? patEntry.target : item.targetPatent,
-                        agency: item.agency,
-                        techNamePro: patEntry ? patEntry.actual : item.techNamePro,
-                        statusSix: item.statusSix,
-                        dost: item.dost,
-                        patentNumber: item.patentNumber,
-                        targetPeople: peopleEntry ? peopleEntry.target : item.targetPeople,
-                        namesBS: peopleEntry ? peopleEntry.actual : item.namesBS,
-                        namesMS: item.namesMS,
-                        namesPhD: item.namesPhD,
-                        targetPlaces: placesEntry ? placesEntry.target : item.targetPlaces,
-                        cooperators: placesEntry ? placesEntry.actual : item.cooperators,
-                        international: item.international,
-                        privateSixPS: item.privateSixPS,
-                        targetPolicy: policyEntry ? policyEntry.target : item.targetPolicy,
-                        policyRecommendation: policyEntry ? policyEntry.actual : item.policyRecommendation,
-                    };
-                }),
+                sixPs: Object.fromEntries(updatedSixPs.map((item) => [String(item.year), item])),
             });
 
             console.log('Project updated successfully');
@@ -731,6 +719,7 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
             showToastF();
         } catch (error) {
             console.error('Error updating project:', error);
+            alert('Unable to save the project. Please check your connection and administrator access, then try again.');
         }
     };
 

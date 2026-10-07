@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.user_lvl == '0';
+    }
+
+    function isApprovedUser() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.user_lvl in ['0', '1'];
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['first_name', 'last_name', 'email', 'user_lvl', 'created_at'])
+        && request.resource.data.keys().hasOnly(['first_name', 'last_name', 'email', 'user_lvl', 'created_at'])
+        && request.resource.data.first_name is string
+        && request.resource.data.last_name is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.user_lvl == '2'
+        && request.resource.data.created_at == request.time;
+
+      allow update: if signedIn() && (
+        (
+          request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name'])
+          && request.resource.data.first_name is string
+          && request.resource.data.last_name is string
+        ) || (
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name', 'user_lvl'])
+          && request.resource.data.user_lvl in ['0', '1', '2']
+        )
+      );
+
+      allow delete: if isAdmin() && request.auth.uid != userId;
+    }
+
+    match /projects/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /budgets/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /counterpartFunds/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /releases/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /proposals/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /fullblownProposals/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /conceptProposals/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /iddProposals/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /futureDirections/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /indirectCostSummaries/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /disbursementVouchers/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,31 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
 import * as XLSX from 'xlsx';
-import axios from 'axios';
 import './Goals.css';
 import { normalizeImportedConceptProposalRows } from './conceptProposalImportUtils';
+import { formatProposalDetailValue, reconcileProposalRows } from './proposalImportUtils';
+import { deleteImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
 
 const ConceptProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
   const [filterValue, setFilterValue] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const isFirstLoad = useRef(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const stored = localStorage.getItem('conceptProposals');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) || [];
-        const normalized = parsed.map((r, i) => r.id ? r : { ...r, id: Date.now() + i });
-        setRows(normalized);
-      } catch { setRows([]); }
+  const loadRows = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setRows(await listImportedRows('conceptProposals'));
+    } catch (loadError) {
+      console.error('Error loading concept proposals from Firestore:', loadError);
+      setError(loadError.message || 'Unable to load concept proposals from Firebase.');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (isFirstLoad.current) { isFirstLoad.current = false; return; }
-    localStorage.setItem('conceptProposals', JSON.stringify(rows));
-  }, [rows]);
+    loadRows();
+  }, [loadRows]);
 
   const filtered = rows.filter(r =>
     (r.classification || '').toLowerCase().includes(filterValue.toLowerCase()) ||
@@ -34,16 +37,14 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
   );
 
   const handleRefresh = () => {
-    const stored = localStorage.getItem('conceptProposals');
-    if (stored) { try { setRows(JSON.parse(stored)); } catch { setRows([]); } } else { setRows([]); }
+    loadRows();
     setFilterValue('');
   };
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
     const form = e.target;
     const newRow = {
-      id: Date.now(),
       classification: form.classification.value,
       dateReceived: form.dateReceived.value,
       dateActioned: form.dateActioned.value,
@@ -55,8 +56,14 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
       status: form.status.value,
       files: ''
     };
-    setRows(prev => [newRow, ...prev]);
-    setIsAddOpen(false);
+    try {
+      await saveImportedRows('conceptProposals', [newRow]);
+      await loadRows();
+      setIsAddOpen(false);
+    } catch (saveError) {
+      console.error('Error saving concept proposal:', saveError);
+      alert('Unable to save concept proposal: ' + saveError.message);
+    }
   };
 
   const exportToExcel = () => {
@@ -85,31 +92,33 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
 
     const extension = (file.name || '').split('.').pop().toLowerCase();
 
-    const processWorkbook = (workbook) => {
+    const processWorkbook = async (workbook) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
       const importedRows = normalizeImportedConceptProposalRows(jsonData);
-      setRows(prev => {
-        const existingKeys = new Set(prev.map(r => ((r.conceptTitle || '').toLowerCase().trim() + '|' + (r.projectLeader || '').toLowerCase().trim())));
-        const toAdd = importedRows.filter(r => {
-          const key = ((r.conceptTitle || '').toLowerCase().trim() + '|' + (r.projectLeader || '').toLowerCase().trim());
-          return key && !existingKeys.has(key);
-        });
-        return [...toAdd, ...prev];
-      });
-      alert(`Concept proposals imported successfully (${importedRows.length} rows processed).`);
+      const existingRows = await listImportedRows('conceptProposals');
+      const { additions, updates, skippedCount } = reconcileProposalRows(importedRows, existingRows, 'conceptTitle');
+      if (additions.length === 0 && updates.length === 0) {
+        const headers = Object.keys(jsonData[0] || {}).join(', ');
+        alert(`No concept proposals could be imported. Found ${jsonData.length} rows, but none had a recognized concept title. Detected columns: ${headers || 'none'}.`);
+        return;
+      }
+      if (additions.length) await saveImportedRows('conceptProposals', additions);
+      await Promise.all(updates.map(([id, row]) => updateImportedRow('conceptProposals', id, row)));
+      await loadRows();
+      alert(`Concept proposal import complete: ${additions.length} added, ${updates.length} updated, ${skippedCount} rows skipped because they had no title.`);
     };
 
     try {
       if (extension === 'csv') {
         const text = await file.text();
         const workbook = XLSX.read(text, { type: 'string' });
-        processWorkbook(workbook);
+        await processWorkbook(workbook);
       } else {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-        processWorkbook(workbook);
+        await processWorkbook(workbook);
       }
     } catch (error) {
       console.error('Error importing concept proposals:', error);
@@ -209,43 +218,43 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
   const handleDelete = async (row) => {
     if (window.confirm(`Delete concept proposal "${row.conceptTitle || 'this proposal'}"?`)) {
       try {
-        await axios.post('http://localhost:8080/ArchiveProposals', {
-          ISP: row.ISP || 'N/A',
-          programTitle: row.programTitle || row.classification || 'N/A',
-          projectTitle: row.conceptTitle || 'N/A',
-          responsiblePerson: row.projectLeader || 'N/A',
-          implementingAgency: row.implementingAgency || 'N/A',
-          leadTRD: row.leadTRD || 'N/A',
-          funding: row.funding || 'N/A',
-          quarter: row.quarter || 'N/A',
-          date: row.dateReceived || 'N/A',
-          remarks: row.remarks || row.status || 'N/A',
-        });
-        setRows(prev => prev.filter(item => item.id !== row.id));
-        window.dispatchEvent(new Event('archiveUpdated'));
+        await deleteImportedRow('conceptProposals', row.id);
+        await loadRows();
       } catch (error) {
-        console.error('Error archiving concept proposal:', error);
+        console.error('Error deleting concept proposal:', error);
         alert('Unable to archive this proposal. It was not deleted.');
       }
     }
   };
 
-  const saveEdit = (e) => {
+  const saveEdit = async (e) => {
     e.preventDefault();
-    const updated = { ...editingRow };
-    setRows(prev => prev.map(r => r.id === updated.id ? updated : r));
-    setIsEditOpen(false);
-    setEditingRow(null);
+    try {
+      const updates = Object.fromEntries(Object.entries(editingRow).filter(([key]) => !['id', '_importedBy', '_importedAt'].includes(key)));
+      await updateImportedRow('conceptProposals', editingRow.id, updates);
+      await loadRows();
+      setIsEditOpen(false);
+      setEditingRow(null);
+    } catch (saveError) {
+      console.error('Error updating concept proposal:', saveError);
+      alert('Unable to update concept proposal: ' + saveError.message);
+    }
   };
 
-  const saveFiles = (e) => {
+  const saveFiles = async (e) => {
     e.preventDefault();
-    if (!fileInput) { setIsFilesOpen(false); setEditingRow(null); return; }
-    const updated = { ...editingRow, files: fileInput.name };
-    setRows(prev => prev.map(r => r.id === updated.id ? updated : r));
-    setFileInput(null);
-    setIsFilesOpen(false);
-    setEditingRow(null);
+    try {
+      if (fileInput) {
+        await updateImportedRow('conceptProposals', editingRow.id, { files: fileInput.name });
+        await loadRows();
+      }
+      setFileInput(null);
+      setIsFilesOpen(false);
+      setEditingRow(null);
+    } catch (saveError) {
+      console.error('Error updating concept proposal file name:', saveError);
+      alert('Unable to update proposal file: ' + saveError.message);
+    }
   };
 
   return (
@@ -296,7 +305,12 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
         </div>
       </div>
 
+      {error && <div className="alert alert-danger mt-3" role="alert">{error}</div>}
+
       <div className='table-responsive pt-4 goals-table-wrapper major-table-wrapper'>
+        {loading ? (
+          <div className="text-center py-4">Loading concept proposals…</div>
+        ) : (
         <DataTable
           columns={columns}
           data={filtered}
@@ -308,6 +322,7 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
           paginationRowsPerPageOptions={[10,25,50]}
           className={'pt-5 major-table'}
         />
+        )}
       </div>
 
       {isAddOpen && (
@@ -399,10 +414,10 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
               </div>
               <div className="modal-body">
                 <dl className="row">
-                  {Object.entries(editingRow).map(([k, v]) => (
+                  {Object.entries(editingRow).filter(([key]) => key !== 'id' && !key.startsWith('_')).map(([k, v]) => (
                     <React.Fragment key={k}>
                       <dt className="col-sm-4 text-capitalize">{k.replace(/([A-Z])/g, ' $1')}</dt>
-                      <dd className="col-sm-8">{v || '-'}</dd>
+                      <dd className="col-sm-8">{formatProposalDetailValue(v)}</dd>
                     </React.Fragment>
                   ))}
                 </dl>

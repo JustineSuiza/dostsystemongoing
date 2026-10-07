@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import DataTable from 'react-data-table-component';
 import './Dashboard.css';
 import './DecisionSupport.css';
@@ -10,6 +9,7 @@ import { Tooltip as ReactTooltip, Tooltip } from 'react-tooltip';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
+import { listImportedProjects, listImportedRows, parseImportedAmount } from '../firestoreImports';
 
 const regionCoordinates = {
   "Region I (Ilocos Region)": [120.6200, 16.0832],
@@ -79,6 +79,9 @@ const normalizeStatus = (remarks) => {
 const Dashboard = ({ sidebarExpanded }) => {
   const [info, setInfo] = useState([]);
   const [proposals, setProposals] = useState([]);
+  const [fullblownProposals, setFullblownProposals] = useState([]);
+  const [conceptProposals, setConceptProposals] = useState([]);
+  const [iddProposals, setIddProposals] = useState([]);
   const [indirectSummaryTotals, setIndirectSummaryTotals] = useState({
     totalReleases: 0,
     totalObligation: 0,
@@ -149,6 +152,9 @@ const Dashboard = ({ sidebarExpanded }) => {
   useEffect(() => {
     getInfo();
     getProposal();
+    getFullblownProposals();
+    getConceptProposals();
+    getIddProposals();
     getIndirectCostSummary();
   }, []);
 
@@ -227,19 +233,48 @@ const Dashboard = ({ sidebarExpanded }) => {
 
 
   const getInfo = async () => {
-    const info = await axios.get('http://localhost:8080/Projects');
-    setInfo(info.data);
+    try {
+      setInfo(await listImportedProjects());
+    } catch (error) {
+      console.error('Error loading Firebase projects:', error);
+    }
   };
 
   const getProposal = async () => {
-    const info = await axios.get('http://localhost:8080/Proposals');
-    setProposals(info.data);
+    try {
+      setProposals(await listImportedRows('proposals'));
+    } catch (error) {
+      console.error('Error loading Firebase proposals:', error);
+    }
+  };
+
+  const getFullblownProposals = async () => {
+    try {
+      setFullblownProposals(await listImportedRows('fullblownProposals'));
+    } catch (error) {
+      console.error('Error loading Firebase fullblown proposals:', error);
+    }
+  };
+
+  const getConceptProposals = async () => {
+    try {
+      setConceptProposals(await listImportedRows('conceptProposals'));
+    } catch (error) {
+      console.error('Error loading Firebase concept proposals:', error);
+    }
+  };
+
+  const getIddProposals = async () => {
+    try {
+      setIddProposals(await listImportedRows('iddProposals'));
+    } catch (error) {
+      console.error('Error loading Firebase IDD proposals:', error);
+    }
   };
 
   const getIndirectCostSummary = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/IndirectCostSummary');
-      const data = Array.isArray(response.data) ? response.data : [];
+      const data = await listImportedRows('indirectCostSummaries');
       const totals = data.reduce(
         (acc, row) => ({
           totalReleases: acc.totalReleases + Number(row.totalReleases || 0),
@@ -418,17 +453,6 @@ const Dashboard = ({ sidebarExpanded }) => {
     revisionProposals = proposals.filter((project) => project.remarks === 'Revision');
   }
 
-  // Proposal category counts sourced from localStorage (Concept, Fullblown, IDD)
-  const conceptProposals = (() => {
-    try { return JSON.parse(localStorage.getItem('conceptProposals') || '[]'); } catch { return []; }
-  })();
-  const fullblownProposals = (() => {
-    try { return JSON.parse(localStorage.getItem('fullblownProposals') || '[]'); } catch { return []; }
-  })();
-  const iddProposals = (() => {
-    try { return JSON.parse(localStorage.getItem('iddProposals') || '[]'); } catch { return []; }
-  })();
-
   const conceptCount = conceptProposals.length;
   const fullblownCount = fullblownProposals.length;
   const iddCount = iddProposals.length;
@@ -437,7 +461,7 @@ const Dashboard = ({ sidebarExpanded }) => {
   const combinedTotal = conceptCount + fullblownCount + iddCount;
 
   // Denominator for category percentages must be the sum of the same categories,
-  // otherwise percentages won't add up to 100% when API/localStorage counts differ.
+  // otherwise percentages won't add up to 100% when proposal-category counts differ.
   const categoryTotal = conceptCount + fullblownCount + iddCount;
   const percentOf = (count) => (categoryTotal ? ((count / categoryTotal) * 100).toFixed(0) : 0);
 
@@ -558,6 +582,7 @@ const Dashboard = ({ sidebarExpanded }) => {
     'Under Evaluation': CHART_COLORS.blue,
     'Revision': CHART_COLORS.violet,
     'For revision': CHART_COLORS.amberDark,
+    'For Submission of fullblown': CHART_COLORS.amber,
     'Other': CHART_COLORS.slate,
     'Unspecified': '#CBD5E1'
   };
@@ -575,7 +600,7 @@ const Dashboard = ({ sidebarExpanded }) => {
   const normalizeFullblownStatus = (value) => {
     const status = (value || '').toString().trim();
     if (!status || status.toLowerCase() === 'unspecified') {
-      return null;
+      return 'Unspecified';
     }
     return status;
   };
@@ -592,7 +617,7 @@ const Dashboard = ({ sidebarExpanded }) => {
 
   // Fullblown proposal status distribution
   const fullblownStatusCounts = fullblownProposals.reduce((acc, cur) => {
-    const status = normalizeFullblownStatus(cur.status || cur.remarks);
+    const status = normalizeFullblownStatus(cur?.status || cur?.remarks);
     if (!status) return acc;
     acc[status] = (acc[status] || 0) + 1;
     return acc;
@@ -1147,9 +1172,9 @@ const Dashboard = ({ sidebarExpanded }) => {
     const totalBudgetByISP = {};
     info.forEach((project) => {
       const isp = project.ISP;
-      const budgetString = project.totalBudget;
-      if (budgetString !== null) {
-        const budget = parseFloat(budgetString.replace(/,/g, '') || 0);
+      const budgetValue = project.totalBudget;
+      if (budgetValue !== null && budgetValue !== undefined) {
+        const budget = parseImportedAmount(budgetValue);
         if (!totalBudgetByISP[isp]) {
           totalBudgetByISP[isp] = budget;
         } else {
@@ -1207,7 +1232,7 @@ const Dashboard = ({ sidebarExpanded }) => {
 
     info.forEach(project => {
       if (project.totalBudget) {
-        overallTotal += parseFloat(project.totalBudget.replace(/,/g, ''));
+        overallTotal += parseImportedAmount(project.totalBudget);
       }
     });
 
@@ -1220,7 +1245,7 @@ const Dashboard = ({ sidebarExpanded }) => {
     const newProjects = info.filter((project) => normalizeStatus(project.status || project.remarks) === 'New');
     newProjects.forEach(project => {
       if (project.totalBudget) {
-        overallTotal += parseFloat(project.totalBudget.replace(/,/g, ''));
+        overallTotal += parseImportedAmount(project.totalBudget);
       }
     });
 
@@ -1233,7 +1258,7 @@ const Dashboard = ({ sidebarExpanded }) => {
     const newProjects = info.filter((project) => normalizeStatus(project.status || project.remarks) === 'Ongoing');
     newProjects.forEach(project => {
       if (project.totalBudget) {
-        overallTotal += parseFloat(project.totalBudget.replace(/,/g, ''));
+        overallTotal += parseImportedAmount(project.totalBudget);
       }
     });
 
@@ -1245,7 +1270,7 @@ const Dashboard = ({ sidebarExpanded }) => {
 
     info.forEach(project => {
       if (project.releaseData?.programmedAmount) {
-        overallTotal += parseFloat(String(project.releaseData.programmedAmount).replace(/,/g, ''));
+        overallTotal += parseImportedAmount(project.releaseData.programmedAmount);
       }
     });
 
@@ -1257,7 +1282,7 @@ const Dashboard = ({ sidebarExpanded }) => {
 
     info.forEach(project => {
       if (project.releaseData?.actualRelease) {
-        overallTotal += parseFloat(String(project.releaseData.actualRelease).replace(/,/g, ''));
+        overallTotal += parseImportedAmount(project.releaseData.actualRelease);
       }
     });
 
@@ -1392,7 +1417,7 @@ const Dashboard = ({ sidebarExpanded }) => {
     info.forEach((project) => {
       const status = normalizeStatus(project.status || project.remarks);
       const region = normalizeRegionLabel(project.region || project.releaseData?.regionIA);
-      const budget = project.totalBudget ? parseFloat(project.totalBudget.replace(/,/g, '')) : 0;
+      const budget = parseImportedAmount(project.totalBudget);
 
       if (status !== 'Terminated' && region) { // Exclude terminated projects and projects without a region
         if (selectedRegionFilters && selectedRegionFilters.length > 0 && !selectedRegionFilters.includes(region)) {

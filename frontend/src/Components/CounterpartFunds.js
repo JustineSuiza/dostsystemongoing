@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import EditCounterpartFundModal from './EditCounterpartFundModal';
 import FilterCounterpartFundModal from './FilterCounterpartFundModal';
+import { listImportedProjects, parseImportedAmount, saveProjectRelatedRows } from '../firestoreImports';
 
 const CounterpartFunds = ({ data, sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -56,12 +57,12 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
     }, []);
 
     const getInfo = async () => {
-        const response = await axios.get('http://localhost:8080/Projects');
-        setOriginalInfo(response.data);
-        setInfo(response.data);
-        calculateYearlyTotals(response.data);
-        fetchAvailableYears(response.data);
-        fetchAvailableISPs(response.data);
+        const projects = await listImportedProjects();
+        setOriginalInfo(projects);
+        setInfo(projects);
+        calculateYearlyTotals(projects);
+        fetchAvailableYears(projects);
+        fetchAvailableISPs(projects);
     };
 
     const importFromExcel = async (event) => {
@@ -98,11 +99,16 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
                     })).filter(r => r.projectTitle && r.year && (r.amount !== null && r.amount !== undefined && r.amount !== ''));
 
                     // Send to backend for processing
-                    const response = await axios.post('http://localhost:8080/ImportCounterpartFunds', rowsToImport);
-                    if (response.status === 200) {
+                    if (rowsToImport.length > 0) {
+                        const result = await saveProjectRelatedRows('counterpartFunds', rowsToImport);
                         setShowToast(true);
                         setTimeout(() => setShowToast(false), 3000);
-                        getInfo();
+                        if (result.skippedCount) {
+                            alert(`Imported ${result.importedCount} rows to Firebase. Skipped ${result.skippedCount} rows that did not match an imported project.`);
+                        }
+                        await getInfo();
+                    } else {
+                        alert('No valid counterpart fund rows were found in the selected file.');
                     }
                 } catch (error) {
                     console.error('Error importing counterpart funds:', error);
@@ -237,7 +243,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
                     }
                     return acc;
                 }, {}),
-                'Total': row.counterpartFundData ? parseFloat(row.counterpartFundData.totalFund.replace(/,/g, '')) : 0,
+                'Total': parseImportedAmount(row.counterpartFundData?.totalFund),
                 'Remarks': row.remarks,
             };
     
@@ -399,9 +405,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
         })),
         { name: 'Total', selector: (row) => {
             if (row.counterpartFundData && row.counterpartFundData.totalFund) {
-                const value = typeof row.counterpartFundData.totalFund === 'string' ? 
-                    parseFloat(row.counterpartFundData.totalFund.replace(/,/g, '')) : 
-                    row.counterpartFundData.totalFund;
+                const value = parseImportedAmount(row.counterpartFundData.totalFund);
                 return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
             return '0.00';
@@ -453,7 +457,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
                     // Filter out invalid years (0, "0", null, or non-numeric values)
                     const yearNum = parseInt(year);
                     if (!isNaN(yearNum) && yearNum > 0) {
-                        const budgetValue = parseFloat(project.counterFund[year].replace(/,/g, ''));
+                        const budgetValue = parseImportedAmount(project.counterFund[year]);
                         totals[year] = (totals[year] || 0) + budgetValue;
                     }
                 });
@@ -468,7 +472,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
     
         filteredData.forEach(project => {
             if (project.counterpartFundData && project.counterpartFundData.totalFund) {
-                overallTotal += parseFloat(project.counterpartFundData.totalFund.replace(/,/g, ''));
+                overallTotal += parseImportedAmount(project.counterpartFundData.totalFund);
             }
         });
     

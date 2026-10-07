@@ -9,6 +9,8 @@ import FilterProposalModal from './FilterProposalModal';
 import EditProposalModal from './EditProposalModal';
 import AddProposalModal from './AddProposalModal';
 import { Tooltip } from 'react-tooltip';
+import { listImportedRows, saveImportedRows } from '../firestoreImports';
+import { formatProposalDetailValue } from './proposalImportUtils';
 
 const Proposals = ({ sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -57,14 +59,14 @@ const Proposals = ({ sidebarExpanded }) => {
 
     const getInfo = async () => {
         try {
-            const response = await axios.get('http://localhost:8080/Proposals');
-            setOriginalInfo(response.data);
-            setInfo(response.data);
+            const proposals = await listImportedRows('proposals');
+            setOriginalInfo(proposals);
+            setInfo(proposals);
             setFilterValue('');
-            checkNearProposals(response.data);
-            checkDueProposals(response.data);
-            fetchAvailableYears(response.data);
-            fetchAvailableISPs(response.data);
+            checkNearProposals(proposals);
+            checkDueProposals(proposals);
+            fetchAvailableYears(proposals);
+            fetchAvailableISPs(proposals);
         } catch (error) {
             console.error('Error loading proposals:', error);
         }
@@ -396,15 +398,10 @@ const Proposals = ({ sidebarExpanded }) => {
                     return;
                 }
 
-                const response = await axios.post('http://localhost:8080/ImportProposals', proposals);
-                if (response.status === 200) {
-                    const importedCount = response.data.count ?? 0;
-                    await getInfo();
-                    if (importedCount > 0) {
-                        alert(`Successfully imported ${importedCount} proposal${importedCount === 1 ? '' : 's'}!`);
-                    } else {
-                        alert('Import completed but no valid proposals were imported. Please verify the sheet headers and row values.');
-                    }
+                const importedCount = await saveImportedRows('proposals', proposals);
+                await getInfo();
+                if (importedCount > 0) {
+                    alert(`Successfully imported ${importedCount} proposal${importedCount === 1 ? '' : 's'} to Firebase!`);
                 }
             } catch (error) {
                 console.error('Error importing proposals:', error);
@@ -479,47 +476,47 @@ const Proposals = ({ sidebarExpanded }) => {
                                     <div className='pb-4'>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>ISP:</label></div>
-                                            <div className='col'><label>{selectedProposal.ISP || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.ISP)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Program Title:</label></div>
-                                            <div className='col'><label>{selectedProposal.programTitle || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.programTitle)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Project Title:</label></div>
-                                            <div className='col'><label>{selectedProposal.projectTitle || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.projectTitle)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Responsible Person:</label></div>
-                                            <div className='col'><label>{selectedProposal.responsiblePerson || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.responsiblePerson)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Implementing Agency:</label></div>
-                                            <div className='col'><label>{selectedProposal.implementingAgency || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.implementingAgency)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Program/Project Leader:</label></div>
-                                            <div className='col'><label>{selectedProposal.programLeader || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.programLeader)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Funding:</label></div>
-                                            <div className='col'><label>{selectedProposal.funding || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.funding)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Lead TRD:</label></div>
-                                            <div className='col'><label>{selectedProposal.leadTRD || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.leadTRD)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Quarter:</label></div>
-                                            <div className='col'><label>{selectedProposal.quarter || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.quarter)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Date:</label></div>
-                                            <div className='col'><label>{selectedProposal.date || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.date)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Remarks:</label></div>
-                                            <div className='col'><label>{selectedProposal.remarks || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.remarks)}</label></div>
                                         </div>
                                     </div>
                                 </>

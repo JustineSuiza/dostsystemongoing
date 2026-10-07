@@ -3,11 +3,13 @@ import logo from './Images/logo pcaarrd.png';
 import './Navbar.css'
 import { Tooltip } from 'react-tooltip'
 import AddProjectModal from './AddProjectModal';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { DayPicker } from 'react-day-picker';
 import { Container, Row, Col, Card, Toast } from 'react-bootstrap';
 import EditUserProfile from './EditUserProfile';
+import { signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 const Navbar = ({ sidebarExpanded }) => {
 
@@ -53,17 +55,13 @@ const Navbar = ({ sidebarExpanded }) => {
 
   const handleLogout = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/Logout', { validateStatus: false });
-
-      if (response.status === 302) {
-        window.location.reload();
-        navigate("/login");
-      } else {
-        localStorage.removeItem('isLoggedIn');
-        navigate("/login");
-        window.location.reload();
-        console.log('Successfully logged out');
-      }
+      await signOut(auth);
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('user_lvl');
+      localStorage.removeItem('id');
+      localStorage.removeItem('first_name');
+      localStorage.removeItem('last_name');
+      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -76,13 +74,8 @@ const Navbar = ({ sidebarExpanded }) => {
 
   const fetchUserProfile = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:8080/Accounts/${userId}`);
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        console.error('Failed to fetch user profile');
-      }
+      const snapshot = await getDoc(doc(db, 'users', userId));
+      setUser(snapshot.exists() ? { ...snapshot.data(), uid: snapshot.id } : null);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -116,7 +109,10 @@ const Navbar = ({ sidebarExpanded }) => {
         isEditModalOpen={isEditModalOpen} 
         closeModal={() => setIsEditModalOpen(false)} 
         user={selectedUser} 
-        refresh={() => fetchUserProfile(localStorage.getItem('id'))} 
+        refresh={async () => {
+          await fetchUserProfile(auth.currentUser.uid);
+          setFirstName(localStorage.getItem('first_name'));
+        }}
       />
       <AddProjectModal />
       <div className="d-flex align-items-center">

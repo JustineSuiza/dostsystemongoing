@@ -17,6 +17,7 @@
     "date-fns": "^3.6.0",
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",
+    "firebase": "^12.19.0",
     "html-docx-js": "^0.3.1",
     "jquery": "^3.7.1",
     "mapbox-gl": "^1.13.3",

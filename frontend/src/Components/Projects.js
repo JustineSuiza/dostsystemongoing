@@ -16,6 +16,7 @@ import ImageModal from './ImageModal';
 import FileModal from './FileModal';
 import { pdfjs } from 'react-pdf';
 import PdfModal from './PdfModal';
+import { listImportedProjects, saveImportedRows } from '../firestoreImports';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
@@ -249,12 +250,14 @@ const Projects = ({ sidebarExpanded }) => {
         try {
             let filename;
             if (fileType === 'implementation') {
-                filename = selectedProject.fileData.implementationFilename;
+                filename = selectedProject?.fileData?.implementationFilename;
             } else if (fileType === 'extension') {
-                filename = selectedProject.fileData.extensionFilename;
+                filename = selectedProject?.fileData?.extensionFilename;
             } else if (fileType === 'realignment') {
-                filename = selectedProject.fileData.realignmentFilename;
+                filename = selectedProject?.fileData?.realignmentFilename;
             }
+
+            if (!filename) return;
     
             const response = await axios.get(`http://localhost:8080/GetFile/${filename}`, {
                 responseType: 'blob'
@@ -312,12 +315,17 @@ const Projects = ({ sidebarExpanded }) => {
     const getProgramLeader = (row) => row.programLeader || '';
 
     const getInfo = async () => {
-        const response = await axios.get('http://localhost:8080/Projects/');
-        setOriginalInfo(response.data);
-        setInfo(response.data);
-        fetchAvailableISPs(response.data);
-        fetchAvailableYears(response.data);
-        checkNearProposals(response.data);
+        try {
+            const projects = await listImportedProjects();
+            setOriginalInfo(projects);
+            setInfo(projects);
+            fetchAvailableISPs(projects);
+            fetchAvailableYears(projects);
+            checkNearProposals(projects);
+        } catch (error) {
+            console.error('Error loading Firestore projects:', error);
+            alert('Unable to load imported projects from Firebase: ' + error.message);
+        }
     };
 
     const refreshData = () => {
@@ -1111,14 +1119,10 @@ const Projects = ({ sidebarExpanded }) => {
                     }
 
                     // Send to backend for saving/updating
-                    const response = await axios.post('http://localhost:8080/ImportProjects', projectsToImport);
-
-                    if (response.status === 200) {
-                        setShowToast(true);
-                        setTimeout(() => setShowToast(false), 3000);
-                        // Refresh the projects list
-                        getInfo();
-                    }
+                    await saveImportedRows('projects', projectsToImport);
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 3000);
+                    await getInfo();
                 } catch (error) {
                     console.error('Error importing projects:', error);
                     const message = error.response?.data?.messages?.error
@@ -1483,18 +1487,22 @@ const Projects = ({ sidebarExpanded }) => {
                                                         <label className='h6 fw-semibold'>File for Implementation Change:</label>
                                                     </div>
                                                     <div className='col'>
-                                                        <a className='' style={{ cursor: 'pointer' }} onClick={() => openModal('implementation')}>
-                                                            {selectedProject.fileData.implementationFilename}
-                                                        </a>
+                                                        {selectedProject.fileData?.implementationFilename ? (
+                                                            <button type="button" className="btn btn-link p-0" onClick={() => openModal('implementation')}>
+                                                                {selectedProject.fileData.implementationFilename}
+                                                            </button>
+                                                        ) : <span>No file uploaded</span>}
                                                     </div>
 
                                                     <div className='col-md-3'>
                                                         <label className='h6 fw-semibold'>Extension File:</label>
                                                     </div>
                                                     <div className='col'>
-                                                        <a className='' style={{ cursor: 'pointer' }} onClick={() => openModal('extension')}>
-                                                            {selectedProject.fileData.extensionFilename}
-                                                        </a>
+                                                        {selectedProject.fileData?.extensionFilename ? (
+                                                            <button type="button" className="btn btn-link p-0" onClick={() => openModal('extension')}>
+                                                                {selectedProject.fileData.extensionFilename}
+                                                            </button>
+                                                        ) : <span>No file uploaded</span>}
                                                     </div>
 
                                                     {showModal && isImage && (
@@ -1653,9 +1661,11 @@ const Projects = ({ sidebarExpanded }) => {
                                                         <label className='h6 fw-semibold'>Realignment File:</label>
                                                     </div>
                                                     <div className='col'>
-                                                        <a className='' style={{ cursor: 'pointer' }} onClick={() => openModal('realignment')}>
-                                                            {selectedProject.fileData.realignmentFilename}
-                                                        </a>
+                                                        {selectedProject.fileData?.realignmentFilename ? (
+                                                            <button type="button" className="btn btn-link p-0" onClick={() => openModal('realignment')}>
+                                                                {selectedProject.fileData.realignmentFilename}
+                                                            </button>
+                                                        ) : <span>No file uploaded</span>}
                                                     </div>
                                                 </div>
                                                 <div className='row pb-2'>

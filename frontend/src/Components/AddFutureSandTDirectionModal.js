@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Tooltip } from 'react-tooltip';
+import { saveImportedRows } from '../firestoreImports';
 
 const AddFutureSandTDirectionModal = ({ refresh }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,12 +44,10 @@ const AddFutureSandTDirectionModal = ({ refresh }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:8080/FutureSandTDirections', formData);
-            if (response.status === 201 || response.status === 200) {
-                alert('Future S&T Direction added successfully!');
-                handleCloseModal();
-                refresh();
-            }
+            await saveImportedRows('futureDirections', [formData]);
+            alert('Future S&T Direction added successfully!');
+            handleCloseModal();
+            refresh();
         } catch (error) {
             console.error('Error adding direction:', error);
             alert('Error adding direction: ' + (error.response?.data?.messages?.error || error.message));

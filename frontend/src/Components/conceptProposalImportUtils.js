@@ -25,16 +25,15 @@ export const normalizeImportedConceptProposalRows = (rows = []) => {
 
   return (rows || [])
     .filter(Boolean)
-    .map((row, index) => ({
-      id: Date.now() + Math.floor(Math.random() * 1000000) + index,
+    .map((row) => ({
       classification: findValue(row, 'Classification', 'classification'),
       dateReceived: findValue(row, 'Date Received', 'dateReceived', 'date_received'),
       dateActioned: findValue(row, 'Date Actioned', 'dateActioned', 'date_actioned'),
       leadTRD: findValue(row, 'Lead TRD', 'leadTRD', 'lead_trd'),
-      conceptTitle: findValue(row, 'Concept Proposal Title', 'conceptTitle', 'title', 'concept_proposal_title'),
-      projectLeader: findValue(row, 'Project Leader', 'projectLeader', 'project_leader'),
-      implementingAgency: findValue(row, 'Implementing Agency', 'implementingAgency', 'implementing_agency'),
-      proposedBudget: findValue(row, 'Proposed Budget', 'proposedBudget', 'proposed_budget'),
+      conceptTitle: findValue(row, 'Concept Proposal Title', 'Title of Concept Proposal', 'Proposal Title', 'conceptTitle', 'title', 'concept_proposal_title'),
+      projectLeader: findValue(row, 'Project Leader', 'Project Proponent', 'Proponent', 'projectLeader', 'project_leader'),
+      implementingAgency: findValue(row, 'Implementing Agency', 'Implementing Institution', 'Agency', 'implementingAgency', 'implementing_agency'),
+      proposedBudget: findValue(row, 'Proposed Budget', 'Proposed Amount', 'Budget', 'proposedBudget', 'proposed_budget'),
       status: findValue(row, 'Status', 'status'),
       files: '',
     }));

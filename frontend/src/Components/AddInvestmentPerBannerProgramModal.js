@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Tooltip } from 'react-tooltip';
 import './InvestmentPerBannerProgram.css';
+import { saveImportedRows } from '../firestoreImports';
 
 const AddInvestmentPerBannerProgramModal = ({ refresh }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,11 +84,9 @@ const AddInvestmentPerBannerProgramModal = ({ refresh }) => {
         ];
 
         try {
-            const response = await axios.post('http://localhost:8080/ImportFutureSandTDirections', directionsToImport);
-            if (response.status === 200) {
-                handleCloseModal();
-                refresh();
-            }
+            await saveImportedRows('futureDirections', directionsToImport);
+            handleCloseModal();
+            refresh();
         } catch (error) {
             console.error('Error adding Investment per Banner Program record:', error);
             alert('Error adding record: ' + (error.response?.data?.messages?.error || error.message));

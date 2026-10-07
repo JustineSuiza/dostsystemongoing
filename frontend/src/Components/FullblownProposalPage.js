@@ -1,35 +1,42 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
 import * as XLSX from 'xlsx';
-import axios from 'axios';
 import './Goals.css';
+import {
+  deleteImportedRow,
+  listImportedRows,
+  saveImportedRows,
+  updateImportedRow,
+} from '../firestoreImports';
+import {
+  normalizeImportedFullblownProposalRows,
+  reconcileFullblownProposalRows,
+} from './fullblownProposalImportUtils';
+import { formatProposalDetailValue } from './proposalImportUtils';
 
 const FullblownProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
   const [filterValue, setFilterValue] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const isFirstLoad = useRef(true);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('fullblownProposals');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) || [];
-        const normalized = parsed.map((r, i) => r.id ? r : { ...r, id: Date.now() + i });
-        setRows(normalized);
-      } catch {
-        setRows([]);
-      }
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const loadRows = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const imported = await listImportedRows('fullblownProposals');
+      setRows(imported);
+    } catch (loadError) {
+      console.error('Error loading fullblown proposals from Firestore:', loadError);
+      setError(loadError.message || 'Unable to load fullblown proposals from Firebase.');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (isFirstLoad.current) {
-      isFirstLoad.current = false;
-      return;
-    }
-    localStorage.setItem('fullblownProposals', JSON.stringify(rows));
-  }, [rows]);
+    loadRows();
+  }, []);
 
   const filtered = rows.filter(r =>
     (r.classification || '').toLowerCase().includes(filterValue.toLowerCase()) ||
@@ -38,20 +45,14 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
   );
 
   const handleRefresh = () => {
-    const stored = localStorage.getItem('fullblownProposals');
-    if (stored) {
-      try { setRows(JSON.parse(stored)); } catch { setRows([]); }
-    } else {
-      setRows([]);
-    }
+    loadRows();
     setFilterValue('');
   };
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
     const form = e.target;
     const newRow = {
-      id: Date.now(),
       classification: form.classification.value,
       dateReceived: form.dateReceived.value,
       dateActioned: form.dateActioned.value,
@@ -63,8 +64,14 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
       status: form.status.value,
       files: ''
     };
-    setRows(prev => [newRow, ...prev]);
-    setIsAddOpen(false);
+    try {
+      await saveImportedRows('fullblownProposals', [newRow]);
+      await loadRows();
+      setIsAddOpen(false);
+    } catch (saveError) {
+      console.error('Error saving fullblown proposal:', saveError);
+      alert('Unable to save fullblown proposal: ' + saveError.message);
+    }
   };
 
   const exportToExcel = () => {
@@ -91,82 +98,41 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
     URL.revokeObjectURL(url);
   };
 
-  const normalizeImportedFullblownProposalRows = (rows = []) => {
-    const sanitize = (value) => {
-      if (value === undefined || value === null) return '';
-      return String(value).replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim();
-    };
-
-    const normalizeKey = (key = '') => key.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    const findValue = (row, ...candidates) => {
-      for (const candidate of candidates) {
-        if (row[candidate] !== undefined && row[candidate] !== null && String(row[candidate]).trim() !== '') {
-          return sanitize(row[candidate]);
-        }
-      }
-      const normalizedRow = Object.keys(row || {}).reduce((acc, key) => {
-        acc[normalizeKey(key)] = row[key];
-        return acc;
-      }, {});
-      for (const candidate of candidates) {
-        const normalizedCandidate = normalizeKey(candidate);
-        if (normalizedRow[normalizedCandidate] !== undefined && normalizedRow[normalizedCandidate] !== null && String(normalizedRow[normalizedCandidate]).trim() !== '') {
-          return sanitize(normalizedRow[normalizedCandidate]);
-        }
-      }
-      return '';
-    };
-
-    return (rows || [])
-      .filter(Boolean)
-      .map((row, index) => ({
-        id: Date.now() + Math.floor(Math.random() * 1000000) + index,
-        classification: findValue(row, 'Classification', 'classification'),
-        dateReceived: findValue(row, 'Date Received', 'dateReceived', 'date_received'),
-        dateActioned: findValue(row, 'Date Actioned', 'dateActioned', 'date_actioned'),
-        leadTRD: findValue(row, 'Lead TRD', 'leadTRD', 'lead_trd'),
-        proposalTitle: findValue(row, 'Proposal Title', 'proposalTitle', 'title'),
-        projectLeader: findValue(row, 'Project Leader', 'projectLeader', 'project_leader'),
-        implementingAgency: findValue(row, 'Implementing Agency', 'implementingAgency', 'implementing_agency'),
-        proposedBudget: findValue(row, 'Proposed Budget', 'proposedBudget', 'proposed_budget'),
-        status: findValue(row, 'Status', 'status'),
-        files: '',
-      }));
-  };
-
   const importFromExcel = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const extension = (file.name || '').split('.').pop().toLowerCase();
 
-    const processWorkbook = (workbook) => {
+    const processWorkbook = async (workbook) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-      const importedRows = normalizeImportedFullblownProposalRows(jsonData);
-
-      setRows(prev => {
-        const existingKeys = new Set(prev.map(r => ((r.proposalTitle || '').toLowerCase().trim() + '|' + (r.projectLeader || '').toLowerCase().trim())));
-        const toAdd = importedRows.filter(r => {
-          const key = ((r.proposalTitle || '').toLowerCase().trim() + '|' + (r.projectLeader || '').toLowerCase().trim());
-          return key && !existingKeys.has(key);
-        });
-        return [...toAdd, ...prev];
-      });
-      alert(`Fullblown proposals imported successfully (${importedRows.length} rows processed).`);
+      const normalizedRows = normalizeImportedFullblownProposalRows(jsonData);
+      const existing = await listImportedRows('fullblownProposals');
+      const { additions, updates, skippedCount } = reconcileFullblownProposalRows(normalizedRows, existing);
+      if (additions.length === 0 && updates.length === 0) {
+        const headers = Object.keys(jsonData[0] || {}).join(', ');
+        alert(`No proposals could be imported. Found ${jsonData.length} spreadsheet rows, but none had a recognized proposal title. Detected columns: ${headers || 'none'}.`);
+        return;
+      }
+      if (additions.length > 0) {
+        await saveImportedRows('fullblownProposals', additions);
+      }
+      await Promise.all(updates.map(([id, row]) => updateImportedRow('fullblownProposals', id, row)));
+      await loadRows();
+      alert(`Fullblown proposal import complete: ${additions.length} added, ${updates.length} updated, ${skippedCount} rows skipped because they had no proposal title.`);
     };
 
     try {
       if (extension === 'csv') {
         const text = await file.text();
         const workbook = XLSX.read(text, { type: 'string' });
-        processWorkbook(workbook);
+        await processWorkbook(workbook);
       } else {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-        processWorkbook(workbook);
+        await processWorkbook(workbook);
       }
     } catch (error) {
       console.error('Error importing fullblown proposals:', error);
@@ -200,42 +166,45 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
   const handleDelete = async (row) => {
     if (window.confirm(`Delete fullblown proposal "${row.proposalTitle || 'this proposal'}"?`)) {
       try {
-        await axios.post('http://localhost:8080/ArchiveProposals', {
-          ISP: row.ISP || 'N/A',
-          programTitle: row.programTitle || row.classification || 'N/A',
-          projectTitle: row.proposalTitle || 'N/A',
-          responsiblePerson: row.projectLeader || 'N/A',
-          implementingAgency: row.implementingAgency || 'N/A',
-          leadTRD: row.leadTRD || 'N/A',
-          funding: row.funding || 'N/A',
-          quarter: row.quarter || 'N/A',
-          date: row.dateReceived || 'N/A',
-          remarks: row.remarks || row.status || 'N/A',
-        });
-        setRows(prev => prev.filter(item => item.id !== row.id));
-        window.dispatchEvent(new Event('archiveUpdated'));
+        await deleteImportedRow('fullblownProposals', row.id);
+        await loadRows();
       } catch (error) {
-        console.error('Error archiving fullblown proposal:', error);
-        alert('Unable to archive this proposal. It was not deleted.');
+        console.error('Error deleting fullblown proposal:', error);
+        alert('Unable to delete this proposal. It was not deleted.');
       }
     }
   };
 
-  const saveEdit = (e) => {
+  const saveEdit = async (e) => {
     e.preventDefault();
-    setRows(prev => prev.map(r => r.id === editingRow.id ? editingRow : r));
-    setIsEditOpen(false);
-    setEditingRow(null);
+    try {
+      const updates = Object.fromEntries(
+        Object.entries(editingRow).filter(([key]) => !['id', '_importedBy', '_importedAt'].includes(key))
+      );
+      await updateImportedRow('fullblownProposals', editingRow.id, updates);
+      await loadRows();
+      setIsEditOpen(false);
+      setEditingRow(null);
+    } catch (saveError) {
+      console.error('Error updating fullblown proposal:', saveError);
+      alert('Unable to update fullblown proposal: ' + saveError.message);
+    }
   };
 
-  const saveFiles = (e) => {
+  const saveFiles = async (e) => {
     e.preventDefault();
-    if (fileInput) {
-      setRows(prev => prev.map(r => r.id === editingRow.id ? { ...r, files: fileInput.name } : r));
+    try {
+      if (fileInput) {
+        await updateImportedRow('fullblownProposals', editingRow.id, { files: fileInput.name });
+        await loadRows();
+      }
+      setFileInput(null);
+      setIsFilesOpen(false);
+      setEditingRow(null);
+    } catch (saveError) {
+      console.error('Error updating fullblown proposal file name:', saveError);
+      alert('Unable to update proposal file: ' + saveError.message);
     }
-    setFileInput(null);
-    setIsFilesOpen(false);
-    setEditingRow(null);
   };
 
   const columns = [
@@ -348,7 +317,12 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
         </div>
       </div>
 
+      {error && <div className="alert alert-danger mt-3" role="alert">{error}</div>}
+
       <div className='table-responsive pt-4 goals-table-wrapper major-table-wrapper'>
+        {loading ? (
+          <div className="text-center py-4">Loading fullblown proposals…</div>
+        ) : (
         <DataTable
           columns={columns}
           data={filtered}
@@ -360,6 +334,7 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
           paginationRowsPerPageOptions={[10,25,50]}
           className={'pt-5 major-table'}
         />
+        )}
       </div>
 
       {isAddOpen && (
@@ -451,10 +426,10 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
               </div>
               <div className="modal-body">
                 <dl className="row">
-                  {Object.entries(editingRow).map(([k, v]) => (
+                  {Object.entries(editingRow).filter(([key]) => key !== 'id' && !key.startsWith('_')).map(([k, v]) => (
                     <React.Fragment key={k}>
                       <dt className="col-sm-4 text-capitalize">{k.replace(/([A-Z])/g, ' $1')}</dt>
-                      <dd className="col-sm-8">{v || '-'}</dd>
+                      <dd className="col-sm-8">{formatProposalDetailValue(v)}</dd>
                     </React.Fragment>
                   ))}
                 </dl>

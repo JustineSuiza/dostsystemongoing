@@ -1,15 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
+import { listImportedRows } from '../firestoreImports';
+import { buildDecisionSupportSummary } from '../decisionSupport';
 
 /**
  * Decision Support panel.
  *
- * Read-only presentation of the rule-based assessment returned by
- * GET DecisionSupport/summary. It reports evidence and a suggested action;
+ * Read-only presentation of rule-based assessments calculated from Firestore.
+ * It reports evidence and a suggested action;
  * it never decides for DOST personnel and offers no approve/reject control.
  */
-
-const API_BASE = 'http://localhost:8080';
 
 const CLASS_META = {
   CRITICAL: { label: 'Critical', icon: '\u{1F534}', bg: '#FDE7E9', text: '#B42318', border: '#FDA29B' },
@@ -59,10 +58,15 @@ const DecisionSupportPanel = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/DecisionSupport/summary`);
-      setData(response.data);
+      const [projects, budgets, releases] = await Promise.all([
+        listImportedRows('projects'),
+        listImportedRows('budgets'),
+        listImportedRows('releases'),
+      ]);
+      setData(buildDecisionSupportSummary({ projects, budgets, releases }));
     } catch (err) {
-      setError(err?.message || 'Unable to load Decision Support analysis.');
+      console.error('Unable to load Decision Support data from Firestore:', err);
+      setError(err?.message || 'Unable to load Decision Support analysis from Firestore.');
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import DataTable from 'react-data-table-component';
 import axios from 'axios';
 import './InvestmentPerBannerProgram.css';
 import './IndirectCostSummary.css';
+import { listImportedRows, saveImportedRows } from '../firestoreImports';
 
 const API_URL = 'http://localhost:8080/IndirectCostSummary';
 const VOUCHER_API_URL = 'http://localhost:8080/DisbursementVoucher';
@@ -26,7 +27,7 @@ const IndirectCostSummary = ({ sidebarExpanded }) => {
     const [vouchersMap, setVouchersMap] = useState({}); // Map of item id to vouchers
     const [pendingVouchersByNewRow, setPendingVouchersByNewRow] = useState({});
 
-    // Load data from backend on component mount
+    // Load imported records from Firestore on component mount.
     useEffect(() => {
         loadData();
     }, []);
@@ -34,19 +35,12 @@ const IndirectCostSummary = ({ sidebarExpanded }) => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(API_URL);
-            const data = Array.isArray(response.data) ? response.data : [];
+            const data = await listImportedRows('indirectCostSummaries');
             setRows(data);
             
-            // Load vouchers for all items
             const vMap = {};
             for (let item of data) {
-                try {
-                    const vRes = await axios.get(`${VOUCHER_API_URL}/byIndirectCost/${item.id}`);
-                    vMap[item.id] = Array.isArray(vRes.data) ? vRes.data : [];
-                } catch (err) {
-                    vMap[item.id] = [];
-                }
+                vMap[item.id] = [];
             }
             setVouchersMap(vMap);
             return data;
@@ -247,11 +241,8 @@ const IndirectCostSummary = ({ sidebarExpanded }) => {
                         return;
                     }
 
-                    // Save to backend
                     setLoading(true);
-                    await axios.post(`${API_URL}/bulkSave`, parsed);
-                    
-                    // Reload data from backend
+                    await saveImportedRows('indirectCostSummaries', parsed);
                     await loadData();
                     alert(`Imported ${parsed.length} rows successfully!`);
                 } catch (error) {

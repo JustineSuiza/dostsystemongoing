@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import logo from './Images/logo pcaarrd.png'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios';
+import { createUserWithEmailAndPassword, deleteUser, signOut } from 'firebase/auth';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import './login-style.css';
-import { Container, Row, Col, Card, Toast } from 'react-bootstrap';
+import { Row, Col, Card, Toast } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { auth, db } from '../firebase';
 
 const Signup = () => {
     // const [username, setUsername] = useState('');
@@ -19,34 +21,51 @@ const Signup = () => {
 
     const saveProduct = async (e) => {
       e.preventDefault();
-      if 
-        (
-        // !username || 
-        !password 
-        || !email) 
-        {
-          setToastMessage('Please fill all the fields.');
+      if (!first_name.trim() || !last_name.trim() || !password || !email.trim()) {
+        setToastMessage('Please fill all the fields.');
+        setShowToast(true);
+        return;
+      }
+
+      let credential;
+      try {
+          credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+          await setDoc(doc(db, 'users', credential.user.uid), {
+              first_name: first_name.trim(),
+              last_name: last_name.trim(),
+              email: credential.user.email,
+              user_lvl: '2',
+              created_at: serverTimestamp(),
+          });
+      } catch (error) {
+          console.error('Error:', error);
+          if (credential && auth.currentUser?.uid === credential.user.uid) {
+              try {
+                  await deleteUser(credential.user);
+              } catch (cleanupError) {
+                  console.error('Unable to remove the incomplete Firebase account:', cleanupError);
+              }
+          }
+          setToastMessage('Unable to create your account. Check your details and try again.');
           setShowToast(true);
           return;
       }
+
       try {
-          await axios.post('http://localhost:8080/Signup', {
-              first_name: first_name,
-              last_name: last_name,
-              // username: username,
-              password: password,
-              email: email
-          });
-          setShowToast(true);
-          setToastMessage('Signup successful! Your account is awaiting approval.');
-          setTimeout(() => {
-              setShowToast(false);
-              navigate("/");
-          }, 3000); // Adjust duration as needed (in milliseconds)
+          await signOut(auth);
       } catch (error) {
-          console.error('Error:', error);
-          // Handle error here
+          console.error('Unable to sign out after Firebase signup:', error);
+          setToastMessage('Account created and awaiting approval. Please sign out before closing this page.');
+          setShowToast(true);
+          return;
       }
+
+      setShowToast(true);
+      setToastMessage('Signup successful! Your account is awaiting approval.');
+      setTimeout(() => {
+          setShowToast(false);
+          navigate('/');
+      }, 3000);
     }
 
     return (
@@ -79,11 +98,11 @@ const Signup = () => {
                           </div> */}
                           <div className="form-outline mb-4">
                             <h6>Email</h6>
-                            <input type="text" id="email" className="form-control form-control-lg" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            <input type="email" id="email" className="form-control form-control-lg" value={email} onChange={(e) => setEmail(e.target.value)} required />
                           </div>
                           <div className="form-outline mb-4">
                             <h6>Password</h6>
-                            <input type="password" id="password" className="form-control form-control-lg" value={password} onChange={(e) => setPassword(e.target.value)} />
+                            <input type="password" id="password" className="form-control form-control-lg" value={password} onChange={(e) => setPassword(e.target.value)} minLength="6" required />
                           </div>
                           <div className="pt-1 mb-4">
                             <button className="btn btn-lg" style={{ backgroundColor: '#0e2238', color: '#ffffff' }}>Sign Up</button>

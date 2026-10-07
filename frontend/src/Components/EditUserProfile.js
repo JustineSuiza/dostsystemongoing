@@ -1,163 +1,99 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import './Modal.css'
 import ReactDOM from 'react-dom';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-    const [first_name, setFirstname] = useState('');
-    const [last_name, setLastname] = useState('');
-    // const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [email, setEmail] = useState('');
-    const [user_lvl, setUserlvl] = useState('');
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
+      setError('');
+    }
+  }, [user]);
 
-    const [showToast, setShowToast] = useState(false);
-    const [toastTimeout, setToastTimeout] = useState(null);
+  const updateUser = async (event) => {
+    event.preventDefault();
+    if (!user || !firstName.trim() || !lastName.trim()) {
+      setError('First name and last name are required.');
+      return;
+    }
 
-    useEffect(() => {
-        if (user) {
-            setFirstname(user.first_name);
-            setLastname(user.last_name);
-            // setUsername(user.username);
-            setPassword(user.password);
-            setEmail(user.email);
-            setUserlvl(user.user_lvl);
-        }
-    }, [user]);
+    setSaving(true);
+    setError('');
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+      });
+      localStorage.setItem('first_name', firstName.trim());
+      await refresh();
+      closeModal();
+    } catch (updateError) {
+      console.error('Error updating Firebase user profile:', updateError);
+      setError('Unable to update your profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    const updateUser = async (e) => {
-        e.preventDefault();
-    
-        const isChanged =
-        first_name !== user.first_name ||
-        last_name !== user.last_name ||
-        // username !== user.username ||
-        password !== user.password ||
-        email !== user.email ||
-        user_lvl !== user.user_lvl;
-    
-        if (!isChanged) {
-            setShowToast(true);
-            if (toastTimeout) {
-                clearTimeout(toastTimeout);
-            }
-            const timeout = setTimeout(() => {
-                setShowToast(false);
-            }, 5000);
-            setToastTimeout(timeout);
-            return;
-        }
-    
-        try {
-            await axios.patch(`http://localhost:8080/Accounts/${user.id}`, {
-                first_name: first_name,
-                last_name: last_name,
-                // username: username,
-                password: password,
-                email: email,
-                user_lvl: user_lvl,
-            });
-            console.log('User updated successfully');
-            // Update the localStorage with the new first name
-            localStorage.setItem('first_name', first_name);
-            closeModal();
-            refresh();
-            // Refresh the page
-            window.location.reload();
-        } catch (error) {
-            console.error('Error updating user:', error);
-        }
-    };
-
-    return (
-        <div>
-            {ReactDOM.createPortal(
-            <form onSubmit={updateUser}>
-                <div className={`modal fade modal-overlay ${isEditModalOpen ? 'show' : ''}`} tabIndex="-1" style={{ display: isEditModalOpen ? 'block' : 'none' }}>
-                    <div className="modal-dialog modal-dialog-centered modal-xl">
-                        <div className="modal-content p-2">
-                            <div className="modal-header border-0">
-                                <h1 className="modal-title fw-semibold" style={{ fontSize: '18px' }}>Edit User</h1>
-                                <button type="button" className="btn-close" onClick={closeModal} aria-label="Close"></button>
-                                <div
-                                    className="toast position-absolute top-10 start-50 translate-middle-x bg-danger"
-                                    style={{ display: showToast ? 'block' : 'none' }}
-                                    role="alert"
-                                    aria-live="assertive"
-                                    aria-atomic="true"
-                                >
-                                    <div className="d-flex">
-                                        <div className="toast-body text-white">
-                                            Nothing changed
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-body">
-                            <div className="mb-3">
-                                    <label htmlFor="first_name" className="form-label">First Name</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="first_name"
-                                        value={first_name}
-                                        onChange={(e) => setFirstname(e.target.value)}
-                                    />
-                                </div>
-                                <div className="mb-3">
-                                    <label htmlFor="last_name" className="form-label">Last Name</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="last_name"
-                                        value={last_name}
-                                        onChange={(e) => setLastname(e.target.value)}
-                                    />
-                                </div>
-                                {/* <div className="mb-3">
-                                    <label htmlFor="username" className="form-label">Username</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="username"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                    />
-                                </div> */}
-                                <div className="mb-3">
-                                    <label htmlFor="password" className="form-label">Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        id="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
-                                </div>
-                                <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">Email</label>
-                                    <input
-                                        type="email"
-                                        className="form-control"
-                                        id="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-outline px-3 py-2 border text-black" onClick={closeModal} style={{ fontSize: '14px' }}>Cancel</button>
-                                <button className="btn btn-dark px-3 py-2 border" style={{ fontSize: '14px' }}>Update</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </form>,
-            document.body
-        )}
+  return ReactDOM.createPortal(
+    <form onSubmit={updateUser}>
+      <div
+        className={`modal fade modal-overlay ${isEditModalOpen ? 'show' : ''}`}
+        tabIndex="-1"
+        style={{ display: isEditModalOpen ? 'block' : 'none' }}
+      >
+        <div className="modal-dialog modal-dialog-centered modal-xl">
+          <div className="modal-content p-2">
+            <div className="modal-header border-0">
+              <h1 className="modal-title fw-semibold" style={{ fontSize: '18px' }}>Edit Profile</h1>
+              <button type="button" className="btn-close" onClick={closeModal} aria-label="Close" />
+            </div>
+            <div className="modal-body">
+              <div className="mb-3">
+                <label htmlFor="profile-first-name" className="form-label">First Name</label>
+                <input
+                  id="profile-first-name"
+                  type="text"
+                  className="form-control"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="profile-last-name" className="form-label">Last Name</label>
+                <input
+                  id="profile-last-name"
+                  type="text"
+                  className="form-control"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  required
+                />
+              </div>
+              {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            </div>
+            <div className="modal-footer border-0">
+              <button type="button" className="btn btn-outline px-3 py-2 border text-black" onClick={closeModal}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-dark px-3 py-2 border" disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
         </div>
-    )
-}
+      </div>
+    </form>,
+    document.body
+  );
+};
 
 export default EditUserProfile;

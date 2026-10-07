@@ -6,6 +6,7 @@ import './Proposals.css'
 import { Tooltip } from 'react-tooltip';
 import AddFutureSandTDirectionModal from './AddFutureSandTDirectionModal';
 import EditFutureSandTDirectionModal from './EditFutureSandTDirectionModal';
+import { deleteImportedRow, listImportedRows } from '../firestoreImports';
 
 const FutureSandTDirections = ({ sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -36,9 +37,9 @@ const FutureSandTDirections = ({ sidebarExpanded }) => {
 
     const getInfo = async () => {
         try {
-            const response = await axios.get('http://localhost:8080/FutureSandTDirections');
-            setOriginalInfo(response.data);
-            setInfo(response.data);
+            const directions = await listImportedRows('futureDirections');
+            setOriginalInfo(directions);
+            setInfo(directions);
         } catch (error) {
             console.error('Error fetching Future S&T Directions:', error);
         }
@@ -70,7 +71,7 @@ const FutureSandTDirections = ({ sidebarExpanded }) => {
     const deleteDirection = async (id) => {
         if (window.confirm('Are you sure you want to delete this Future S&T Direction?')) {
             try {
-                await axios.delete(`http://localhost:8080/FutureSandTDirections/${id}`);
+                await deleteImportedRow('futureDirections', id);
                 alert('Future S&T Direction deleted successfully!');
                 getInfo();
             } catch (error) {

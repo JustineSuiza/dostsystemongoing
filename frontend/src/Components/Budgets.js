@@ -7,6 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import FilterBudgetModal from './FilterBudgetModal';
+import { listImportedProjects, saveProjectRelatedRows } from '../firestoreImports';
 
 const ProjectTitleCell = ({ title }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -87,12 +88,12 @@ const Budgets = ({ data, sidebarExpanded }) => {
     }, []);
 
     const getInfo = async () => {
-        const response = await axios.get('http://localhost:8080/Projects');
-        setOriginalInfo(response.data);
-        setInfo(response.data);
-        calculateYearlyTotals(response.data);
-        fetchAvailableYears(response.data);
-        fetchAvailableISPs(response.data);
+        const projects = await listImportedProjects();
+        setOriginalInfo(projects);
+        setInfo(projects);
+        calculateYearlyTotals(projects);
+        fetchAvailableYears(projects);
+        fetchAvailableISPs(projects);
     };
 
     // Helper to get budget value for a given row and calendar year
@@ -280,10 +281,12 @@ const Budgets = ({ data, sidebarExpanded }) => {
                     }).filter(r => r.projectTitle && r.year && (r.amount !== null && r.amount !== undefined && r.amount !== ''));
                     
                     console.log('rowsToImport (first 20):', rowsToImport.slice(0, 20));
-                    const response = await axios.post('http://localhost:8080/ImportBudgets', rowsToImport);
-                    if (response.status === 200) {
-                        alert('Budgets imported successfully!');
-                        getInfo();
+                    if (rowsToImport.length > 0) {
+                        const result = await saveProjectRelatedRows('budgets', rowsToImport);
+                        alert(`Imported ${result.importedCount} budget rows to Firebase.${result.skippedCount ? ` Skipped ${result.skippedCount} rows that did not match an imported project.` : ''}`);
+                        await getInfo();
+                    } else {
+                        alert('No valid budget rows were found in the selected file.');
                     }
                 } catch (error) {
                     console.error('Error importing budgets:', error);

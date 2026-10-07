@@ -43,7 +43,8 @@ class EmailController extends BaseController
     $model->save($user);
 
     // Create a reset link with the email and token as query parameters
-    $resetLink = "http://localhost:3000/reset-password?email=" . urlencode($to) . "&token=" . urlencode($resetToken);
+    $frontendBase = rtrim(getenv('frontend.baseURL') ?: 'https://justinez.web.app', '/');
+    $resetLink = $frontendBase . "/reset-password?email=" . urlencode($to) . "&token=" . urlencode($resetToken);
 
     $resetParagraph = "You recently requested a password reset. To proceed with resetting your password, please click the 'Reset Password' button below. If you did not make this request, you can safely ignore this email.";
     $message = "

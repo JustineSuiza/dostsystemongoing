@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Tooltip } from 'react-tooltip';
+import { updateImportedRow } from '../firestoreImports';
 
 const EditFutureSandTDirectionModal = ({ direction, refresh, onClose }) => {
     const [isModalOpen, setIsModalOpen] = useState(true);
@@ -38,12 +38,10 @@ const EditFutureSandTDirectionModal = ({ direction, refresh, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.put(`http://localhost:8080/FutureSandTDirections/${formData.id}`, formData);
-            if (response.status === 200) {
-                alert('Future S&T Direction updated successfully!');
-                handleCloseModal();
-                refresh();
-            }
+            await updateImportedRow('futureDirections', formData.id, formData);
+            alert('Future S&T Direction updated successfully!');
+            handleCloseModal();
+            refresh();
         } catch (error) {
             console.error('Error updating direction:', error);
             alert('Error updating direction: ' + (error.response?.data?.messages?.error || error.message));

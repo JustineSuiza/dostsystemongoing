@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import EditReleasesModal from './EditReleasesModal';
 import FilterReleasesModal from './FilterReleasesModal';
+import { listImportedProjects, parseImportedAmount, saveProjectRelatedRows } from '../firestoreImports';
 
 const Releases = ({ data, sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -76,11 +77,11 @@ const Releases = ({ data, sidebarExpanded }) => {
     }, []);
 
     const getInfo = async () => {
-        const response = await axios.get('http://localhost:8080/Projects');
-        setOriginalInfo(response.data);
-        setInfo(response.data);
-        fetchAvailableYears(response.data);
-        fetchAvailableISPs(response.data);
+        const projects = await listImportedProjects();
+        setOriginalInfo(projects);
+        setInfo(projects);
+        fetchAvailableYears(projects);
+        fetchAvailableISPs(projects);
     };
 
     const refreshData = () => {
@@ -150,10 +151,12 @@ const Releases = ({ data, sidebarExpanded }) => {
                         statusReleases: findColumn(row, 'Status', 'statusReleases', 'Status (Releases)') || null,
                     })).filter(r => r.projectTitle);
 
-                    const response = await axios.post('http://localhost:8080/ImportReleases', rowsToImport);
-                    if (response.status === 200) {
-                        alert('GIA Releases imported successfully!');
-                        getInfo();
+                    if (rowsToImport.length > 0) {
+                        const result = await saveProjectRelatedRows('releases', rowsToImport);
+                        alert(`Imported ${result.importedCount} release rows to Firebase.${result.skippedCount ? ` Skipped ${result.skippedCount} rows that did not match an imported project.` : ''}`);
+                        await getInfo();
+                    } else {
+                        alert('No valid release rows were found in the selected file.');
                     }
                 } catch (error) {
                     console.error('Error importing releases:', error);
@@ -447,7 +450,7 @@ const Releases = ({ data, sidebarExpanded }) => {
 
         filteredData.forEach(project => {
             if (project.totalBudget) {
-                overallTotal += parseFloat(project.totalBudget.replace(/,/g, ''));
+                overallTotal += parseImportedAmount(project.totalBudget);
             }
         });
 
@@ -459,7 +462,7 @@ const Releases = ({ data, sidebarExpanded }) => {
 
         filteredData.forEach(project => {
             if (project.releaseData.programmedAmount) {
-                overallTotal += parseFloat(project.releaseData.programmedAmount.replace(/,/g, ''));
+                overallTotal += parseImportedAmount(project.releaseData.programmedAmount);
             }
         });
 
@@ -471,7 +474,7 @@ const Releases = ({ data, sidebarExpanded }) => {
 
         filteredData.forEach(project => {
             if (project.releaseData.actualRelease) {
-                overallTotal += parseFloat(project.releaseData.actualRelease.replace(/,/g, ''));
+                overallTotal += parseImportedAmount(project.releaseData.actualRelease);
             }
         });
 

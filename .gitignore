@@ -1,0 +1,13 @@
+# Deployment artifacts (contain DB data with credentials / binaries)
+deploy/*.zip
+deploy/*.sql
+deploy/_backend/
+
+# Secrets
+backend/justinez-firebase-adminsdk-*.json
+backend/.env
+node_modules/
+frontend/node_modules/
+frontend/build/
+.firebase/
+frontend/.vercel/

@@ -4,6 +4,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import AddInvestmentPerBannerProgramModal from './AddInvestmentPerBannerProgramModal';
 import './InvestmentPerBannerProgram.css';
+import { deleteImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
 
 const InvestmentPerBannerProgram = ({ sidebarExpanded }) => {
     const [data, setData] = useState([]);
@@ -56,8 +57,7 @@ const InvestmentPerBannerProgram = ({ sidebarExpanded }) => {
 
     const getData = async () => {
         try {
-            const response = await axios.get('http://localhost:8080/FutureSandTDirections');
-            setData(response.data);
+            setData(await listImportedRows('futureDirections'));
         } catch (error) {
             console.error('Error fetching Investment per Banner Program data:', error);
         }
@@ -153,7 +153,7 @@ const InvestmentPerBannerProgram = ({ sidebarExpanded }) => {
             // Attempt to delete each item by id if present
             const deletions = items.map(async (item) => {
                 if (item.id) {
-                    await axios.delete(`http://localhost:8080/FutureSandTDirections/${item.id}`);
+                    await deleteImportedRow('futureDirections', item.id);
                 }
             });
             await Promise.all(deletions);
@@ -207,10 +207,9 @@ const InvestmentPerBannerProgram = ({ sidebarExpanded }) => {
                 const id = editForm.ids[u.program];
                 if (id) {
                     // update existing
-                    await axios.put(`http://localhost:8080/FutureSandTDirections/${id}`, payload);
+                    await updateImportedRow('futureDirections', id, payload);
                 } else {
-                    // create new
-                    await axios.post('http://localhost:8080/ImportFutureSandTDirections', [payload]);
+                    await saveImportedRows('futureDirections', [payload]);
                 }
             });
             await Promise.all(calls);
