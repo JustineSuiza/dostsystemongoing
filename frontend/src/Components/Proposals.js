@@ -9,6 +9,7 @@ import FilterProposalModal from './FilterProposalModal';
 import EditProposalModal from './EditProposalModal';
 import AddProposalModal from './AddProposalModal';
 import { Tooltip } from 'react-tooltip';
+import { formatProposalDetailValue } from './proposalDetailValues';
 
 const Proposals = ({ sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -479,47 +480,47 @@ const Proposals = ({ sidebarExpanded }) => {
                                     <div className='pb-4'>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>ISP:</label></div>
-                                            <div className='col'><label>{selectedProposal.ISP || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.ISP)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Program Title:</label></div>
-                                            <div className='col'><label>{selectedProposal.programTitle || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.programTitle)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Project Title:</label></div>
-                                            <div className='col'><label>{selectedProposal.projectTitle || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.projectTitle)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Responsible Person:</label></div>
-                                            <div className='col'><label>{selectedProposal.responsiblePerson || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.responsiblePerson)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Implementing Agency:</label></div>
-                                            <div className='col'><label>{selectedProposal.implementingAgency || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.implementingAgency)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Program/Project Leader:</label></div>
-                                            <div className='col'><label>{selectedProposal.programLeader || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.programLeader)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Funding:</label></div>
-                                            <div className='col'><label>{selectedProposal.funding || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.funding)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Lead TRD:</label></div>
-                                            <div className='col'><label>{selectedProposal.leadTRD || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.leadTRD)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Quarter:</label></div>
-                                            <div className='col'><label>{selectedProposal.quarter || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.quarter)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Date:</label></div>
-                                            <div className='col'><label>{selectedProposal.date || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.date)}</label></div>
                                         </div>
                                         <div className='row pb-2'>
                                             <div className='col-md-3'><label className='h6 fw-semibold'>Remarks:</label></div>
-                                            <div className='col'><label>{selectedProposal.remarks || '-'}</label></div>
+                                            <div className='col'><label>{formatProposalDetailValue(selectedProposal.remarks)}</label></div>
                                         </div>
                                     </div>
                                 </>

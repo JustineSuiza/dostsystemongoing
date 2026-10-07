@@ -3,6 +3,7 @@ import DataTable from 'react-data-table-component';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import './Goals.css';
+import { formatProposalDetailValue } from './proposalDetailValues';
 
 const IDDProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -475,10 +476,10 @@ const IDDProposalPage = ({ sidebarExpanded }) => {
               </div>
               <div className="modal-body">
                 <dl className="row">
-                  {Object.entries(editingRow).map(([k, v]) => (
+                  {Object.entries(editingRow).filter(([key]) => key !== 'id' && !key.startsWith('_')).map(([k, v]) => (
                     <React.Fragment key={k}>
                       <dt className="col-sm-4 text-capitalize">{k.replace(/([A-Z])/g, ' $1')}</dt>
-                      <dd className="col-sm-8">{v || '-'}</dd>
+                      <dd className="col-sm-8">{formatProposalDetailValue(v)}</dd>
                     </React.Fragment>
                   ))}
                 </dl>

@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import axios from 'axios';
 import './Goals.css';
 import { normalizeImportedConceptProposalRows } from './conceptProposalImportUtils';
+import { formatProposalDetailValue } from './proposalDetailValues';
 
 const ConceptProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -399,10 +400,10 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
               </div>
               <div className="modal-body">
                 <dl className="row">
-                  {Object.entries(editingRow).map(([k, v]) => (
+                  {Object.entries(editingRow).filter(([key]) => key !== 'id' && !key.startsWith('_')).map(([k, v]) => (
                     <React.Fragment key={k}>
                       <dt className="col-sm-4 text-capitalize">{k.replace(/([A-Z])/g, ' $1')}</dt>
-                      <dd className="col-sm-8">{v || '-'}</dd>
+                      <dd className="col-sm-8">{formatProposalDetailValue(v)}</dd>
                     </React.Fragment>
                   ))}
                 </dl>
