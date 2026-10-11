@@ -82,13 +82,6 @@ const Dashboard = ({ sidebarExpanded }) => {
   const [fullblownProposals, setFullblownProposals] = useState([]);
   const [conceptProposals, setConceptProposals] = useState([]);
   const [iddProposals, setIddProposals] = useState([]);
-  const [indirectSummaryTotals, setIndirectSummaryTotals] = useState({
-    totalReleases: 0,
-    totalObligation: 0,
-    runningBalance: 0,
-    forPayment: 0,
-    anticipatedBalance: 0,
-  });
   const mapContainerRef = useRef(null);
   const chartContainerRef = useRef(null);
   const [selectedYears, setSelectedYears] = useState([]);
@@ -155,7 +148,6 @@ const Dashboard = ({ sidebarExpanded }) => {
     getFullblownProposals();
     getConceptProposals();
     getIddProposals();
-    getIndirectCostSummary();
   }, []);
 
   useEffect(() => {
@@ -272,34 +264,8 @@ const Dashboard = ({ sidebarExpanded }) => {
     }
   };
 
-  const getIndirectCostSummary = async () => {
-    try {
-      const data = await listImportedRows('indirectCostSummaries');
-      const totals = data.reduce(
-        (acc, row) => ({
-          totalReleases: acc.totalReleases + Number(row.totalReleases || 0),
-          totalObligation: acc.totalObligation + Number(row.totalObligation || 0),
-          runningBalance: acc.runningBalance + Number(row.runningBalance || 0),
-          forPayment: acc.forPayment + Number(row.forPayment || 0),
-          anticipatedBalance: acc.anticipatedBalance + (Number(row.runningBalance || 0) - Number(row.forPayment || 0)),
-        }),
-        {
-          totalReleases: 0,
-          totalObligation: 0,
-          runningBalance: 0,
-          forPayment: 0,
-          anticipatedBalance: 0,
-        }
-      );
-      setIndirectSummaryTotals(totals);
-    } catch (error) {
-      console.error('Error loading Indirect Cost Summary totals:', error);
-    }
-  };
-
   const refreshData = () => {
     getInfo();
-    getIndirectCostSummary();
   };
 
   const clearFilter = () => {
@@ -720,23 +686,6 @@ const Dashboard = ({ sidebarExpanded }) => {
     }]
   };
 
-  const indirectCostPieData = {
-    labels: ['Total Releases', 'Total Obligation/Expenses', 'Running Balance', 'For Payment', 'Anticipated Balance'],
-    datasets: [{
-      data: [
-        indirectSummaryTotals.totalReleases,
-        indirectSummaryTotals.totalObligation,
-        indirectSummaryTotals.runningBalance,
-        indirectSummaryTotals.forPayment,
-        indirectSummaryTotals.anticipatedBalance,
-      ],
-      backgroundColor: [CHART_COLORS.blue, CHART_COLORS.amber, CHART_COLORS.emerald, CHART_COLORS.pink, CHART_COLORS.violet],
-      hoverBackgroundColor: [CHART_COLORS.blueDark, CHART_COLORS.amberDark, CHART_COLORS.emeraldDark, CHART_COLORS.pinkDark, CHART_COLORS.violetDark],
-      borderWidth: 2,
-      borderColor: '#ffffff',
-    }]
-  };
-
   // Modern dark slate tooltip
   const modernTooltip = {
     backgroundColor: '#0F172A',
@@ -780,40 +729,6 @@ const Dashboard = ({ sidebarExpanded }) => {
             const total = context.dataset.data.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
             const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
             return ` ${label}: ${Number(value).toLocaleString()} (${percentage}%)`;
-          }
-        }
-      }
-    }
-  };
-
-  const modernCurrencyDoughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '68%',
-    spacing: 2,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'circle',
-          padding: 12,
-          boxWidth: 8,
-          boxHeight: 8,
-          color: '#475569',
-          font: { family: "'Inter', 'Segoe UI', sans-serif", size: 11, weight: '500' },
-        },
-      },
-      tooltip: {
-        ...modernTooltip,
-        callbacks: {
-          label: function (context) {
-            const label = context.label || '';
-            const value = context.parsed !== undefined ? context.parsed : context.raw;
-            const total = context.dataset.data.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
-            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-            return ` ${label}: ${formatCurrency(value)} (${percentage}%)`;
           }
         }
       }
@@ -2004,7 +1919,7 @@ const Dashboard = ({ sidebarExpanded }) => {
         </div>
       </div>
       <div className='row g-3 pt-2 pb-4'>
-        <div className="col-12 col-xl-6">
+        <div className="col-12">
           <div className="card radius-10 border p-3 dashboard-chart-card h-100">
             <div className="card-body p-0 d-flex flex-column">
               <div className="d-flex justify-content-between align-items-center mb-2">
@@ -2016,22 +1931,6 @@ const Dashboard = ({ sidebarExpanded }) => {
               </div>
               <div className="dashboard-chart flex-grow-1" style={{ width: '100%', minHeight: '300px' }}>
                 <Bar data={regionDataWithBudget} options={modernStackedRegionBudgetOptions} />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className='col-12 col-xl-6'>
-          <div className='card radius-10 border p-3 dashboard-chart-card h-100'>
-            <div className='card-body p-0 d-flex flex-column'>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <div>
-                  <h6 className='card-title fw-bold text-start mb-0'>Indirect Cost Summary Overview</h6>
-                  <small className="text-secondary">Releases, obligations, and balances</small>
-                </div>
-                <span className="dashboard-chart-badge">Financial</span>
-              </div>
-              <div className='dashboard-chart flex-grow-1' style={{ width: '100%', minHeight: '300px' }}>
-                <Doughnut data={indirectCostPieData} options={modernCurrencyDoughnutOptions} />
               </div>
             </div>
           </div>
