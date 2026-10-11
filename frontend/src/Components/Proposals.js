@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import * as XLSX from 'xlsx';
@@ -9,7 +8,7 @@ import FilterProposalModal from './FilterProposalModal';
 import EditProposalModal from './EditProposalModal';
 import AddProposalModal from './AddProposalModal';
 import { Tooltip } from 'react-tooltip';
-import { listImportedRows, saveImportedRows } from '../firestoreImports';
+import { archiveImportedRow, listImportedRows, saveImportedRows } from '../firestoreImports';
 import { formatProposalDetailValue } from './proposalImportUtils';
 
 const Proposals = ({ sidebarExpanded }) => {
@@ -99,20 +98,14 @@ const Proposals = ({ sidebarExpanded }) => {
     const deleteProduct = async () => {
         try {
             if (idToDelete) {
-                console.log('Deleting product with ID:', idToDelete); // Log the ID to verify it
-                const response = await axios.get(`http://localhost:8080/Proposals/${idToDelete}`);
-                const deletedItemData = response.data;
-    
-                await axios.post('http://localhost:8080/ArchiveProposals', deletedItemData);
-
-                await axios.delete(`http://localhost:8080/Proposals/${idToDelete}`);
-
-                getInfo();
+                await archiveImportedRow('proposals', idToDelete);
+                await getInfo();
                 window.dispatchEvent(new Event('archiveUpdated'));
                 setIdToDelete(null);
             }
         } catch (error) {
-            console.error('Error deleting product:', error);
+            console.error('Error archiving proposal:', error);
+            alert('Unable to archive proposal: ' + error.message);
         }
     };        
 
@@ -535,11 +528,11 @@ const Proposals = ({ sidebarExpanded }) => {
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content p-2">
                     <div className="modal-header border-0">
-                        <h5 className="modal-title fw-semibold" style={{ fontSize: isMobile ? '16px' : '18px' }} id="exampleModalLabel">Archive Project?</h5>
+                        <h5 className="modal-title fw-semibold" style={{ fontSize: isMobile ? '16px' : '18px' }} id="exampleModalLabel">Archive Proposal?</h5>
                         <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div className="modal-body">
-                        <label>Archiving this project will remove it from the active list, but you can restore it later if needed.</label>
+                        <label>Archiving this proposal will remove it from the active list, but you can restore it later from the Archive.</label>
                     </div>
                     <div className="modal-footer border-0">
                         <button type="button" className="btn btn-outline px-3 py-2 border text-black" data-bs-dismiss="modal" style={{ fontSize: '14px' }}>Cancel</button>

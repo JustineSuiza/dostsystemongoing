@@ -3,7 +3,7 @@ import DataTable from 'react-data-table-component';
 import * as XLSX from 'xlsx';
 import './Goals.css';
 import {
-  deleteImportedRow,
+  archiveImportedRow,
   listImportedRows,
   saveImportedRows,
   updateImportedRow,
@@ -164,13 +164,14 @@ const FullblownProposalPage = ({ sidebarExpanded }) => {
   };
 
   const handleDelete = async (row) => {
-    if (window.confirm(`Delete fullblown proposal "${row.proposalTitle || 'this proposal'}"?`)) {
+    if (window.confirm(`Archive fullblown proposal "${row.proposalTitle || 'this proposal'}"? You can restore it later from the Archive.`)) {
       try {
-        await deleteImportedRow('fullblownProposals', row.id);
+        await archiveImportedRow('fullblownProposals', row.id);
         await loadRows();
+        window.dispatchEvent(new Event('archiveUpdated'));
       } catch (error) {
         console.error('Error deleting fullblown proposal:', error);
-        alert('Unable to delete this proposal. It was not deleted.');
+        alert('Unable to archive this proposal: ' + error.message);
       }
     }
   };

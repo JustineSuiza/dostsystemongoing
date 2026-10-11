@@ -16,7 +16,7 @@ import ImageModal from './ImageModal';
 import FileModal from './FileModal';
 import { pdfjs } from 'react-pdf';
 import PdfModal from './PdfModal';
-import { listImportedProjects, saveImportedRows } from '../firestoreImports';
+import { archiveImportedRow, listImportedProjects, saveImportedRows } from '../firestoreImports';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
@@ -334,20 +334,21 @@ const Projects = ({ sidebarExpanded }) => {
     };
 
     const handleDeleteClick = (id) => {
-        if (window.confirm('Are you sure you want to delete this project? All related data will also be deleted.')) {
+        if (window.confirm('Archive this project? You can restore it later from the Archive.')) {
             deleteProject(id);
         }
     };
 
     const deleteProject = async (id) => {
         try {
-            await axios.delete(`http://localhost:8080/Projects/${id}`);
+            await archiveImportedRow('projects', id);
             setShowToast(true);
             setTimeout(() => setShowToast(false), 3000);
-            getInfo();
+            await getInfo();
+            window.dispatchEvent(new Event('archiveUpdated'));
         } catch (error) {
-            console.error('Error deleting project:', error);
-            alert('Error deleting project: ' + error.message);
+            console.error('Error archiving project:', error);
+            alert('Unable to archive project: ' + error.message);
         }
     };
 

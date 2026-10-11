@@ -50,6 +50,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /archivedProjects/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
+    match /archivedProposals/{documentId} {
+      allow read: if isApprovedUser();
+      allow write: if isAdmin();
+    }
+
     match /budgets/{documentId} {
       allow read: if isApprovedUser();
       allow write: if isAdmin();

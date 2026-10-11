@@ -146,6 +146,109 @@ export const deleteImportedRow = async (collectionName, id) => {
   await deleteDoc(doc(db, collectionName, id));
 };
 
+const archiveCollectionForSource = (collectionName) => (
+  collectionName === 'projects' ? 'archivedProjects' : 'archivedProposals'
+);
+
+const isArchivableCollection = (collectionName) => (
+  ['projects', 'proposals', 'fullblownProposals', 'conceptProposals', 'iddProposals'].includes(collectionName)
+);
+
+export const archiveImportedRow = async (collectionName, id) => {
+  if (!isArchivableCollection(collectionName)) {
+    throw new Error(`The ${collectionName} collection cannot be archived.`);
+  }
+
+  await requireAdministrator();
+  const sourceReference = doc(db, collectionName, id);
+  const sourceSnapshot = await getDoc(sourceReference);
+  if (!sourceSnapshot.exists()) {
+    throw new Error('This item no longer exists and could not be archived.');
+  }
+
+  const archiveCollection = archiveCollectionForSource(collectionName);
+  const archiveReference = doc(collection(db, archiveCollection));
+  const batch = writeBatch(db);
+  batch.set(archiveReference, {
+    type: collectionName === 'projects' ? 'Projects' : 'Proposals',
+    sourceCollection: collectionName,
+    sourceId: id,
+    data: sourceSnapshot.data(),
+    archivedBy: auth.currentUser.uid,
+    archivedAt: serverTimestamp(),
+  });
+  batch.delete(sourceReference);
+  await batch.commit();
+};
+
+export const listArchivedRows = async () => {
+  const [projects, proposals] = await Promise.all([
+    getDocs(collection(db, 'archivedProjects')),
+    getDocs(collection(db, 'archivedProposals')),
+  ]);
+
+  return [
+    ...projects.docs.map((snapshot) => ({
+      ...snapshot.data().data,
+      id: snapshot.id,
+      sourceId: snapshot.data().sourceId,
+      sourceCollection: snapshot.data().sourceCollection,
+      archiveCollection: 'archivedProjects',
+      type: 'Projects',
+      archivedAt: snapshot.data().archivedAt,
+    })),
+    ...proposals.docs.map((snapshot) => ({
+      ...snapshot.data().data,
+      id: snapshot.id,
+      sourceId: snapshot.data().sourceId,
+      sourceCollection: snapshot.data().sourceCollection,
+      archiveCollection: 'archivedProposals',
+      type: 'Proposals',
+      archivedAt: snapshot.data().archivedAt,
+    })),
+  ];
+};
+
+export const restoreArchivedRow = async (archiveCollection, archiveId) => {
+  if (!['archivedProjects', 'archivedProposals'].includes(archiveCollection)) {
+    throw new Error('Invalid archive collection.');
+  }
+
+  await requireAdministrator();
+  const archiveReference = doc(db, archiveCollection, archiveId);
+  const archiveSnapshot = await getDoc(archiveReference);
+  if (!archiveSnapshot.exists()) {
+    throw new Error('This archived item no longer exists.');
+  }
+
+  const archived = archiveSnapshot.data();
+  if (!isArchivableCollection(archived.sourceCollection) || !archived.sourceId || !archived.data) {
+    throw new Error('The archived item is missing valid restore data.');
+  }
+  if (archiveCollectionForSource(archived.sourceCollection) !== archiveCollection) {
+    throw new Error('The archived item is stored in the wrong archive.');
+  }
+
+  const sourceReference = doc(db, archived.sourceCollection, archived.sourceId);
+  if ((await getDoc(sourceReference)).exists()) {
+    throw new Error('An item with the original ID already exists and cannot be restored safely.');
+  }
+
+  const batch = writeBatch(db);
+  batch.set(sourceReference, archived.data);
+  batch.delete(archiveReference);
+  await batch.commit();
+};
+
+export const deleteArchivedRow = async (archiveCollection, archiveId) => {
+  if (!['archivedProjects', 'archivedProposals'].includes(archiveCollection)) {
+    throw new Error('Invalid archive collection.');
+  }
+
+  await requireAdministrator();
+  await deleteDoc(doc(db, archiveCollection, archiveId));
+};
+
 export const listImportedProjects = async () => {
   const [projects, budgets, releases, counterpartFunds] = await Promise.all([
     listImportedRows('projects'),

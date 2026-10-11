@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import './Goals.css';
 import { normalizeImportedConceptProposalRows } from './conceptProposalImportUtils';
 import { formatProposalDetailValue, reconcileProposalRows } from './proposalImportUtils';
-import { deleteImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
+import { archiveImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
 
 const ConceptProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -216,13 +216,14 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
   };
 
   const handleDelete = async (row) => {
-    if (window.confirm(`Delete concept proposal "${row.conceptTitle || 'this proposal'}"?`)) {
+    if (window.confirm(`Archive concept proposal "${row.conceptTitle || 'this proposal'}"? You can restore it later from the Archive.`)) {
       try {
-        await deleteImportedRow('conceptProposals', row.id);
+        await archiveImportedRow('conceptProposals', row.id);
         await loadRows();
+        window.dispatchEvent(new Event('archiveUpdated'));
       } catch (error) {
         console.error('Error deleting concept proposal:', error);
-        alert('Unable to archive this proposal. It was not deleted.');
+        alert('Unable to archive this proposal: ' + error.message);
       }
     }
   };

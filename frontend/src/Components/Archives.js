@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import ReactDOM from 'react-dom';
+import {
+    deleteArchivedRow,
+    listArchivedRows,
+    restoreArchivedRow,
+} from '../firestoreImports';
 
 const Archives = () => {
     const [archiveData, setArchiveData] = useState([]);
+    const [error, setError] = useState('');
 
     const fetchArchiveData = async () => {
         try {
-            const [projectsResponse, proposalsResponse] = await Promise.all([
-                axios.get('http://localhost:8080/ArchiveProjects'),
-                axios.get('http://localhost:8080/ArchiveProposals'),
-            ]);
-            const modifiedData = [
-                ...projectsResponse.data.map(item => ({ ...item, type: 'Projects' })),
-                ...proposalsResponse.data.map(item => ({ ...item, type: 'Proposals' })),
-            ];
-
-            setArchiveData(modifiedData);
+            setError('');
+            setArchiveData(await listArchivedRows());
         } catch (error) {
             console.error('Error fetching archived data:', error);
+            setError(`Unable to load archived items: ${error.message}`);
         }
     };
 
@@ -47,98 +45,42 @@ const Archives = () => {
 
     const getArchiveKey = (item) => `${item.type}-${item.id}`;
 
-    const handleDelete = async (item, confirmDelete = true) => {
-        if (confirmDelete && !window.confirm(`Permanently delete this archived ${item.type === 'Proposals' ? 'proposal' : 'project'}?`)) {
+    const handleDelete = async (item) => {
+        if (!window.confirm(`Permanently delete this archived ${item.type === 'Proposals' ? 'proposal' : 'project'}?`)) {
             return false;
         }
 
         try {
-            const endpoint = item?.type === 'Proposals' ? 'ArchiveProposals' : 'ArchiveProjects';
-            await axios.delete(`http://localhost:8080/${endpoint}/${item.id}`);
-            // After successful deletion, remove the deleted item from archiveData
-            setArchiveData(prevData => prevData.filter(archiveItem => getArchiveKey(archiveItem) !== getArchiveKey(item)));
+            await deleteArchivedRow(item.archiveCollection, item.id);
+            await fetchArchiveData();
             return true;
         } catch (error) {
             console.error('Error deleting archived data:', error);
-            alert(`Unable to delete this archived item: ${error.response?.data?.messages?.error || error.message}`);
+            alert(`Unable to permanently delete this archived item: ${error.message}`);
             return false;
         }
     };
 
     const handleUnarchive = async (item) => {
         try {
+            await restoreArchivedRow(item.archiveCollection, item.id);
+            await fetchArchiveData();
             if (item.type === 'Projects') {
-                const budget = item.budget && !Array.isArray(item.budget)
-                    ? Object.entries(item.budget).map(([year, amount]) => ({
-                        year: Number(year),
-                        amount: Number(String(amount ?? '').replace(/,/g, '')) || 0,
-                    }))
-                    : (item.budget || []).map((budgetItem) => ({
-                        year: Number(budgetItem.year),
-                        amount: Number(budgetItem.amount) || 0,
-                    }));
-
-                const restoreData = {
-                    projectCode: item.projectCode || '',
-                    programCode: item.programCode || '',
-                    ISP: item.ISP || '',
-                    programTitle: item.programTitle || '',
-                    projectTitle: item.projectTitle || '',
-                    responsiblePerson: item.responsiblePerson || '',
-                    funding: item.funding || '',
-                    implementingAgency: item.implementingAgency || '',
-                    programLeader: item.programLeader || '',
-                    projectLeader: item.projectLeader || '',
-                    emailAddress: item.emailAddress || '',
-                    contactNumber: item.contactNumber || '',
-                    postalAddress: item.postalAddress || '',
-                    cooperatingAgency: item.cooperatingAgency || '',
-                    originalStart: item.originalStart || '',
-                    originalEnd: item.originalEnd || '',
-                    changeStart: item.changeStart || '',
-                    changeImplementationDate: item.changeImplementationDate || '',
-                    firstExtension: item.firstExtension || '',
-                    secondExtension: item.secondExtension || '',
-                    objectives: item.objectives || '',
-                    description: item.description || '',
-                    deliverables: item.deliverables || '',
-                    beneficiaries: item.beneficiaries || '',
-                    status: item.status || '',
-                    remarks: item.remarks || '',
-                    tagging: item.tagging || '',
-                    budget,
-                };
-
-                await axios.post('http://localhost:8080/Projects', restoreData);
-                if (!await handleDelete(item, false)) return;
                 window.dispatchEvent(new Event('projectCreated'));
-                window.dispatchEvent(new Event('archiveUpdated'));
-                return;
+            } else {
+                window.dispatchEvent(new Event('proposalRestored'));
             }
-
-            const restoreData = {
-                ISP: item.ISP,
-                programTitle: item.programTitle,
-                projectTitle: item.projectTitle,
-                responsiblePerson: item.responsiblePerson,
-                implementingAgency: item.implementingAgency,
-                programLeader: item.programLeader || '',
-                leadTRD: item.leadTRD,
-                funding: item.funding,
-                quarter: item.quarter,
-                date: item.date,
-                remarks: item.remarks,
-            };
-
-            await axios.post('http://localhost:8080/Proposals', restoreData);
-            // After successful unarchiving, delete the item from the archive
-            if (!await handleDelete(item, false)) return;
-            window.dispatchEvent(new Event('proposalRestored'));
             window.dispatchEvent(new Event('archiveUpdated'));
         } catch (error) {
             console.error('Error unarchiving data:', error);
-            alert(`Unable to restore this archived item: ${error.response?.data?.messages?.error || error.message}`);
+            alert(`Unable to restore this archived item: ${error.message}`);
         }
+    };
+
+    const formatArchivedDate = (value) => {
+        if (!value) return '-';
+        const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+        return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
     };
 
     return (
@@ -164,6 +106,7 @@ const Archives = () => {
                             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
+                            {error && <div className="alert alert-danger" role="alert">{error}</div>}
                             <table className="table">
                                 <thead>
                                     <tr>
@@ -178,8 +121,8 @@ const Archives = () => {
                                 <tbody>
                                     {archiveData.map((item) => (
                                         <tr key={getArchiveKey(item)}>
-                                            <td className='w-50'>{item.projectTitle}</td>
-                                            <td>{item.created_at}</td> 
+                                            <td className='w-50'>{item.projectTitle || item.proposalTitle || item.conceptTitle || '-'}</td>
+                                            <td>{formatArchivedDate(item.archivedAt)}</td>
                                             <td>{item.type}</td> 
                                             {localStorage.getItem('user_lvl') === '0' && (
                                                 <>

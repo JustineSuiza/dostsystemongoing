@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import './Goals.css';
 import { normalizeImportedIDDProposalRows } from './iddProposalImportUtils';
 import { formatProposalDetailValue, reconcileProposalRows } from './proposalImportUtils';
-import { deleteImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
+import { archiveImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
 
 const IDDProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -160,13 +160,14 @@ const IDDProposalPage = ({ sidebarExpanded }) => {
   };
 
   const handleDelete = async (row) => {
-    if (window.confirm(`Delete IDD proposal "${row.proposalTitle || 'this proposal'}"?`)) {
+    if (window.confirm(`Archive IDD proposal "${row.proposalTitle || 'this proposal'}"? You can restore it later from the Archive.`)) {
       try {
-        await deleteImportedRow('iddProposals', row.id);
+        await archiveImportedRow('iddProposals', row.id);
         await loadRows();
+        window.dispatchEvent(new Event('archiveUpdated'));
       } catch (error) {
         console.error('Error deleting IDD proposal:', error);
-        alert('Unable to delete this proposal. It was not deleted.');
+        alert('Unable to archive this proposal: ' + error.message);
       }
     }
   };
