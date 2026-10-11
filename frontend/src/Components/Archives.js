@@ -21,7 +21,6 @@ const Archives = () => {
     };
 
     useEffect(() => {
-        // Fetch archived data from the backend when the component mounts
         fetchArchiveData();
 
         const handleArchiveUpdated = () => {
@@ -102,7 +101,7 @@ const Archives = () => {
                 <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
                     <div className="modal-content p-2">
                         <div className="modal-header border-0">
-                            <h5 className="modal-title fw-semibold" style={{ fontSize: '18px' }}>Archived Projects</h5>
+                            <h5 className="modal-title fw-semibold" style={{ fontSize: '18px' }}>Archive</h5>
                             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
