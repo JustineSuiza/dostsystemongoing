@@ -265,3 +265,9 @@ export const buildDecisionSupportSummary = ({ projects, budgets, releases, asOf 
     disclaimer: 'Rule-based indicators from recorded project data only. These support human review and do not replace a DOST officer’s assessment.',
   };
 };
+
+export const filterDecisionSupportProjects = (projects, classifications) => {
+  if (classifications.length === 0) return projects;
+  const selected = new Set(classifications);
+  return projects.filter((project) => selected.has(project.classification));
+};

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { listImportedRows } from '../firestoreImports';
-import { buildDecisionSupportSummary } from '../decisionSupport';
+import { buildDecisionSupportSummary, filterDecisionSupportProjects } from '../decisionSupport';
 
 /**
  * Decision Support panel.
@@ -53,6 +54,9 @@ const DecisionSupportPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedClassifications, setSelectedClassifications] = useState([]);
+  const [draftClassifications, setDraftClassifications] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,8 +101,10 @@ const DecisionSupportPanel = () => {
   const counts = data?.counts || {};
   const order = ['CRITICAL', 'AT_RISK', 'NEEDS_ATTENTION', 'INSUFFICIENT_DATA', 'ON_TRACK'];
   const projects = data?.projects || [];
+  const filteredProjects = filterDecisionSupportProjects(projects, selectedClassifications);
   const initialRows = 5;
-  const visible = showAll ? projects : projects.slice(0, initialRows);
+  const visible = showAll ? filteredProjects : filteredProjects.slice(0, initialRows);
+  const filterOptions = order.filter((key) => key !== 'ON_TRACK');
 
   const summaryCards = order
     .filter((key) => (counts[key] || 0) > 0)
@@ -114,9 +120,24 @@ const DecisionSupportPanel = () => {
               Rule-based indicators from recorded project data · evaluated {data?.evaluatedAt}
             </small>
           </div>
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load}>
-            <i className="fa-solid fa-sync me-1"></i>Re-run
-          </button>
+          <div className="d-flex align-items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => {
+                setDraftClassifications(selectedClassifications);
+                setIsFilterOpen(true);
+              }}
+              aria-label="Filter projects by classification"
+              title="Filter"
+            >
+              <i className="fa-solid fa-filter me-1"></i>Filter
+              {selectedClassifications.length > 0 && ` (${selectedClassifications.length})`}
+            </button>
+            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load}>
+              <i className="fa-solid fa-sync me-1"></i>Re-run
+            </button>
+          </div>
         </div>
 
         <div className="row g-2">
@@ -145,12 +166,14 @@ const DecisionSupportPanel = () => {
               Ordered by severity, then by how far the approved end date has passed.
             </small>
           </div>
-          <span className="dashboard-chart-badge">{data?.attentionCount || 0} flagged</span>
+          <span className="dashboard-chart-badge">{filteredProjects.length} matching</span>
         </div>
 
-        {projects.length === 0 ? (
+        {filteredProjects.length === 0 ? (
           <div className="ds-loading">
-            No projects were flagged by the current rules.
+            {projects.length === 0
+              ? 'No projects were flagged by the current rules.'
+              : 'No projects match the selected classifications.'}
           </div>
         ) : (
           <>
@@ -162,16 +185,16 @@ const DecisionSupportPanel = () => {
 
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
               <small className="text-secondary">
-                Showing {visible.length} of {data?.attentionCount} flagged projects
-                {data?.truncated ? ` (feed capped at ${data?.returned}; narrow with the year filter above)` : ''}
+                Showing {visible.length} of {filteredProjects.length} matching projects
+                {data?.truncated ? ` (the analysis feed is capped at ${data?.returned} projects)` : ''}
               </small>
-              {projects.length > initialRows && (
+              {filteredProjects.length > initialRows && (
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary"
                   onClick={() => setShowAll((prev) => !prev)}
                 >
-                  {showAll ? 'Show fewer' : `Show all ${projects.length}`}
+                  {showAll ? 'Show fewer' : `Show all ${filteredProjects.length}`}
                 </button>
               )}
             </div>
@@ -183,6 +206,91 @@ const DecisionSupportPanel = () => {
           {data?.disclaimer}
         </div>
       </div>
+      {isFilterOpen && ReactDOM.createPortal(
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.4)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="decisionSupportFilterTitle"
+        >
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content p-2">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-semibold" id="decisionSupportFilterTitle">Filter Decision Support</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setIsFilterOpen(false)}
+                  aria-label="Close"
+                />
+              </div>
+              <div className="modal-body">
+                <label className="pb-2">Classification</label>
+                <div className="row g-2">
+                  {filterOptions.map((classification) => (
+                    <div className="col-12 col-sm-6" key={classification}>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`decision-support-filter-${classification}`}
+                          checked={draftClassifications.includes(classification)}
+                          onChange={(event) => {
+                            setDraftClassifications((current) => (
+                              event.target.checked
+                                ? [...current, classification]
+                                : current.filter((item) => item !== classification)
+                            ));
+                          }}
+                        />
+                        <label
+                          className="form-check-label"
+                          htmlFor={`decision-support-filter-${classification}`}
+                        >
+                          {CLASS_META[classification].label}
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer border-0 d-flex justify-content-between">
+                <button
+                  type="button"
+                  className="btn btn-outline rounded-circle py-1 px-2"
+                  onClick={() => setDraftClassifications([])}
+                  aria-label="Reset classification filters"
+                  title="Reset"
+                >
+                  <i className="fa-solid fa-arrow-rotate-right"></i>
+                </button>
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline px-3 py-2 border text-black"
+                    onClick={() => setIsFilterOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-dark px-3 py-2 border"
+                    onClick={() => {
+                      setSelectedClassifications(draftClassifications);
+                      setShowAll(false);
+                      setIsFilterOpen(false);
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

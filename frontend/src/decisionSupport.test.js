@@ -1,4 +1,4 @@
-import { buildDecisionSupportSummary } from './decisionSupport';
+import { buildDecisionSupportSummary, filterDecisionSupportProjects } from './decisionSupport';
 
 describe('buildDecisionSupportSummary', () => {
   const asOf = new Date('2026-10-08T00:00:00.000Z');
@@ -55,5 +55,18 @@ describe('buildDecisionSupportSummary', () => {
     expect(summary.projects[0].classification).toBe('NEEDS_ATTENTION');
     expect(summary.projects[0].reasons.map(({ code }) => code)).toContain('STATUS_UNVERIFIED');
     expect(summary.projects[0].reasons.map(({ code }) => code)).not.toContain('OVERDUE_ACTIVE');
+  });
+
+  it('filters decision support projects by selected classifications', () => {
+    const projects = [
+      { id: 'critical', classification: 'CRITICAL' },
+      { id: 'at-risk', classification: 'AT_RISK' },
+      { id: 'attention', classification: 'NEEDS_ATTENTION' },
+      { id: 'insufficient', classification: 'INSUFFICIENT_DATA' },
+    ];
+
+    expect(filterDecisionSupportProjects(projects, ['CRITICAL', 'INSUFFICIENT_DATA']).map(({ id }) => id))
+      .toEqual(['critical', 'insufficient']);
+    expect(filterDecisionSupportProjects(projects, [])).toBe(projects);
   });
 });
