@@ -78,6 +78,19 @@ const requireAdministrator = async () => {
   }
 };
 
+export const canEditProject = (userLevel) => ['0', '1'].includes(String(userLevel));
+
+const requireProjectEditor = async () => {
+  if (!auth.currentUser) {
+    throw new Error('Sign in before editing a project.');
+  }
+
+  const profile = await getDoc(doc(db, 'users', auth.currentUser.uid));
+  if (!profile.exists() || !canEditProject(profile.data().user_lvl)) {
+    throw new Error('Only administrator and level 1 accounts can edit projects.');
+  }
+};
+
 export const saveImportedRows = async (collectionName, rows) => {
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error('No importable rows were found.');
@@ -139,6 +152,11 @@ export const listImportedRows = async (collectionName) => {
 export const updateImportedRow = async (collectionName, id, updates) => {
   await requireAdministrator();
   await updateDoc(doc(db, collectionName, id), removeUndefined(updates));
+};
+
+export const updateImportedProject = async (id, updates) => {
+  await requireProjectEditor();
+  await updateDoc(doc(db, 'projects', id), removeUndefined(updates));
 };
 
 export const deleteImportedRow = async (collectionName, id) => {

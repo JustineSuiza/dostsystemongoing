@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CurrencyInput from 'react-currency-input-field';
-import { updateImportedRow } from '../firestoreImports';
+import { updateImportedProject } from '../firestoreImports';
 
 const remarkOptions = [
     'No Terminal Report',
@@ -663,7 +663,7 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
                 };
             });
 
-            await updateImportedRow('projects', project.id, {
+            await updateImportedProject(project.id, {
                 ISP: ISP,
                 programCode: programCode,
                 programTitle: programTitle,
@@ -719,7 +719,7 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
             showToastF();
         } catch (error) {
             console.error('Error updating project:', error);
-            alert('Unable to save the project. Please check your connection and administrator access, then try again.');
+            alert(`Unable to save the project: ${error.message}`);
         }
     };
 

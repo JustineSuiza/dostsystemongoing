@@ -1,4 +1,4 @@
-import { aggregateAnnualRows, parseImportedAmount } from './firestoreImports';
+import { aggregateAnnualRows, canEditProject, parseImportedAmount } from './firestoreImports';
 
 describe('Firestore import value normalization', () => {
   it('parses numeric and formatted currency values', () => {
@@ -23,5 +23,12 @@ describe('Firestore import value normalization', () => {
     expect(aggregateAnnualRows([
       { year: '2025', amount: '800' },
     ], null)).toEqual({ 2025: 800 });
+  });
+
+  it('allows only administrators and level 1 users to edit projects', () => {
+    expect(canEditProject('0')).toBe(true);
+    expect(canEditProject(1)).toBe(true);
+    expect(canEditProject('2')).toBe(false);
+    expect(canEditProject(undefined)).toBe(false);
   });
 });

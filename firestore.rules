@@ -15,6 +15,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.user_lvl in ['0', '1'];
     }
 
+    function canEditProject() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.user_lvl in ['0', '1'];
+    }
+
     match /users/{userId} {
       allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
@@ -47,7 +52,8 @@ service cloud.firestore {
 
     match /projects/{documentId} {
       allow read: if isApprovedUser();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if canEditProject();
     }
 
     match /archivedProjects/{documentId} {

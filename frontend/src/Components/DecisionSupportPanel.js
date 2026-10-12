@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { listImportedRows } from '../firestoreImports';
 import { buildDecisionSupportSummary, filterDecisionSupportProjects } from '../decisionSupport';
 
@@ -54,9 +53,9 @@ const DecisionSupportPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAll, setShowAll] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedClassifications, setSelectedClassifications] = useState([]);
   const [draftClassifications, setDraftClassifications] = useState([]);
+  const filterButtonRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,22 +120,96 @@ const DecisionSupportPanel = () => {
             </small>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => {
-                setDraftClassifications(selectedClassifications);
-                setIsFilterOpen(true);
-              }}
-              aria-label="Filter projects by classification"
-              title="Filter"
-            >
-              <i className="fa-solid fa-filter me-1"></i>Filter
-              {selectedClassifications.length > 0 && ` (${selectedClassifications.length})`}
-            </button>
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load}>
-              <i className="fa-solid fa-sync me-1"></i>Re-run
-            </button>
+            <div className="sample dropdown" style={{ borderRadius: '50%', padding: '7px 2px 2px 2px' }}>
+              <button
+                ref={filterButtonRef}
+                type="button"
+                className="btn border-0"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                aria-expanded="false"
+                aria-label="Filter projects by classification"
+                title="Filter"
+                onClick={(event) => {
+                  if (event.currentTarget.getAttribute('aria-expanded') !== 'true') {
+                    setDraftClassifications(selectedClassifications);
+                  }
+                }}
+              >
+                <i className="fa-solid fa-filter fs-5"></i>
+                {selectedClassifications.length > 0 && (
+                  <span className="visually-hidden">{selectedClassifications.length} filters applied</span>
+                )}
+              </button>
+              <div
+                className="dropdown-menu dropdown-submenu p-2 dropdown-menu-lg-end"
+                style={{ minWidth: '190px' }}
+              >
+                <label className="pb-2">Classification:</label>
+                {filterOptions.map((classification) => (
+                  <div className="form-check" key={classification}>
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`decision-support-filter-${classification}`}
+                      checked={draftClassifications.includes(classification)}
+                      onChange={(event) => {
+                        setDraftClassifications((current) => (
+                          event.target.checked
+                            ? [...current, classification]
+                            : current.filter((item) => item !== classification)
+                        ));
+                      }}
+                    />
+                    <label
+                      className="form-check-label me-4"
+                      htmlFor={`decision-support-filter-${classification}`}
+                    >
+                      {CLASS_META[classification].label}
+                    </label>
+                  </div>
+                ))}
+                <div className="d-flex justify-content-end mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline rounded-circle py-1 px-2 me-auto"
+                    onClick={() => {
+                      setDraftClassifications([]);
+                      setSelectedClassifications([]);
+                      setShowAll(false);
+                    }}
+                    aria-label="Reset classification filters"
+                    title="Reset"
+                  >
+                    <i className="fa-solid fa-arrow-rotate-right"></i>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline rounded-circle py-1 px-2"
+                    onClick={() => {
+                      setSelectedClassifications(draftClassifications);
+                      setShowAll(false);
+                      filterButtonRef.current?.click();
+                    }}
+                    aria-label="Apply classification filters"
+                    title="Apply"
+                  >
+                    <i className="fa-solid fa-check text-success"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="sample" style={{ borderRadius: '50%', padding: '7px 2px 2px 2px' }}>
+              <button
+                type="button"
+                className="btn border-0"
+                onClick={load}
+                aria-label="Re-run Decision Support"
+                title="Re-run"
+              >
+                <i className="fa-solid fa-sync fs-5"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -206,91 +279,6 @@ const DecisionSupportPanel = () => {
           {data?.disclaimer}
         </div>
       </div>
-      {isFilterOpen && ReactDOM.createPortal(
-        <div
-          className="modal fade show"
-          style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.4)' }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="decisionSupportFilterTitle"
-        >
-          <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content p-2">
-              <div className="modal-header border-0">
-                <h5 className="modal-title fw-semibold" id="decisionSupportFilterTitle">Filter Decision Support</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setIsFilterOpen(false)}
-                  aria-label="Close"
-                />
-              </div>
-              <div className="modal-body">
-                <label className="pb-2">Classification</label>
-                <div className="row g-2">
-                  {filterOptions.map((classification) => (
-                    <div className="col-12 col-sm-6" key={classification}>
-                      <div className="form-check">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id={`decision-support-filter-${classification}`}
-                          checked={draftClassifications.includes(classification)}
-                          onChange={(event) => {
-                            setDraftClassifications((current) => (
-                              event.target.checked
-                                ? [...current, classification]
-                                : current.filter((item) => item !== classification)
-                            ));
-                          }}
-                        />
-                        <label
-                          className="form-check-label"
-                          htmlFor={`decision-support-filter-${classification}`}
-                        >
-                          {CLASS_META[classification].label}
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="modal-footer border-0 d-flex justify-content-between">
-                <button
-                  type="button"
-                  className="btn btn-outline rounded-circle py-1 px-2"
-                  onClick={() => setDraftClassifications([])}
-                  aria-label="Reset classification filters"
-                  title="Reset"
-                >
-                  <i className="fa-solid fa-arrow-rotate-right"></i>
-                </button>
-                <div className="d-flex gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline px-3 py-2 border text-black"
-                    onClick={() => setIsFilterOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-dark px-3 py-2 border"
-                    onClick={() => {
-                      setSelectedClassifications(draftClassifications);
-                      setShowAll(false);
-                      setIsFilterOpen(false);
-                    }}
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 };
