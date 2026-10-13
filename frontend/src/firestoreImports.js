@@ -51,6 +51,36 @@ const getProjectStartYear = (project) => {
   return Number.isFinite(year) ? year : null;
 };
 
+export const getProjectDurationYears = (project) => {
+  const start = project.changeStart || project.originalStart;
+  const end = project.changeImplementationDate || project.originalEnd;
+  if (!start || !end) return [];
+
+  const startYear = new Date(start).getFullYear();
+  const endYear = new Date(end).getFullYear();
+  if (!Number.isFinite(startYear) || !Number.isFinite(endYear) || endYear < startYear) {
+    return [];
+  }
+
+  return Array.from({ length: endYear - startYear + 1 }, (_, index) => String(startYear + index));
+};
+
+export const getEmbeddedBudgetRows = (project) => {
+  if (Array.isArray(project.budgetData) && project.budgetData.length > 0) {
+    return project.budgetData;
+  }
+  if (Array.isArray(project.budgetArray) && project.budgetArray.length > 0) {
+    return project.budgetArray;
+  }
+  if (Array.isArray(project.budget) && project.budget.length > 0) {
+    return project.budget;
+  }
+  if (project.budget && typeof project.budget === 'object') {
+    return Object.entries(project.budget).map(([year, amount]) => ({ year, amount }));
+  }
+  return [];
+};
+
 const removeUndefined = (value) => {
   if (Array.isArray(value)) {
     return value.map((item) => item === undefined ? null : removeUndefined(item));
@@ -80,14 +110,14 @@ const requireAdministrator = async () => {
 
 export const canEditProject = (userLevel) => ['0', '1'].includes(String(userLevel));
 
-const requireProjectEditor = async () => {
+const requireApprovedEditor = async () => {
   if (!auth.currentUser) {
-    throw new Error('Sign in before editing a project.');
+    throw new Error('Sign in before editing data.');
   }
 
   const profile = await getDoc(doc(db, 'users', auth.currentUser.uid));
   if (!profile.exists() || !canEditProject(profile.data().user_lvl)) {
-    throw new Error('Only administrator and level 1 accounts can edit projects.');
+    throw new Error('Only administrators and level 1 employees can edit this data.');
   }
 };
 
@@ -155,8 +185,96 @@ export const updateImportedRow = async (collectionName, id, updates) => {
 };
 
 export const updateImportedProject = async (id, updates) => {
-  await requireProjectEditor();
+  await requireApprovedEditor();
   await updateDoc(doc(db, 'projects', id), removeUndefined(updates));
+};
+
+export const updateImportedRelease = async (id, updates) => {
+  await requireApprovedEditor();
+  await updateDoc(doc(db, 'releases', id), removeUndefined(updates));
+};
+
+export const updateImportedCounterpartFunds = async (project, fundRows, remarks) => {
+  await requireApprovedEditor();
+
+  if (!project?.id) {
+    throw new Error('Project ID is missing.');
+  }
+
+  const projectReference = doc(db, 'projects', project.id);
+  const projectSnapshot = await getDoc(projectReference);
+  if (!projectSnapshot.exists()) {
+    throw new Error('This project no longer exists.');
+  }
+
+  const funds = await listImportedRows('counterpartFunds');
+  const projectTitles = new Set([
+    project.projectTitle,
+    project.programTitle,
+    project.projectCode,
+  ].map(normalizeTitle).filter(Boolean));
+  const relatedFunds = funds.filter((fund) => (
+    fund.projectId === project.id || projectTitles.has(normalizeTitle(fund.projectTitle))
+  ));
+  const startYear = getProjectStartYear(project);
+  const toCalendarYear = (year) => {
+    const text = String(year ?? '').trim();
+    const ordinal = text.match(/^(?:Y|YEAR\s*)(\d+)$/i);
+    return ordinal && Number.isFinite(startYear)
+      ? String(startYear + Number(ordinal[1]) - 1)
+      : text;
+  };
+  const batch = writeBatch(db);
+  const rowsByYear = new Map();
+
+  relatedFunds.forEach((fund) => {
+    const calendarYear = toCalendarYear(fund.year);
+    if (!rowsByYear.has(calendarYear)) rowsByYear.set(calendarYear, []);
+    rowsByYear.get(calendarYear).push(fund);
+  });
+
+  const normalizedFundRows = fundRows.map((row) => ({
+    year: String(row.year),
+    amount: row.amount === '' || row.amount === null || row.amount === undefined
+      ? ''
+      : Number(row.amount),
+  }));
+
+  normalizedFundRows.forEach((row) => {
+    const existingRows = rowsByYear.get(row.year) || [];
+    const [primaryRow, ...duplicateRows] = existingRows;
+    const rowData = {
+      projectId: project.id,
+      projectTitle: project.projectTitle || '',
+      year: row.year,
+      amount: row.amount,
+    };
+
+    if (primaryRow) {
+      batch.update(doc(db, 'counterpartFunds', primaryRow.id), rowData);
+      duplicateRows.forEach((duplicate) => {
+        batch.update(doc(db, 'counterpartFunds', duplicate.id), { amount: 0 });
+      });
+    } else if (row.amount !== '') {
+      batch.set(doc(collection(db, 'counterpartFunds')), rowData);
+    }
+  });
+
+  const embeddedCounterFund = Object.fromEntries(
+    normalizedFundRows.map((row) => [row.year, row.amount])
+  );
+  batch.update(projectReference, {
+    remarks,
+    ...(relatedFunds.length === 0 && {
+      counterFund: embeddedCounterFund,
+      counterpartFundData: {
+        ...(projectSnapshot.data().counterpartFundData || {}),
+        totalFund: normalizedFundRows.reduce((total, row) => total + parseImportedAmount(row.amount), 0),
+      },
+    }),
+  });
+
+  await batch.commit();
 };
 
 export const deleteImportedRow = async (collectionName, id) => {
@@ -288,8 +406,8 @@ export const listImportedProjects = async () => {
     const projectReleases = releases.filter(relatedToProject);
     const projectFunds = counterpartFunds.filter(relatedToProject);
     const startYear = getProjectStartYear(project);
-    const embeddedBudgets = Array.isArray(project.budgetData) ? project.budgetData : [];
-    const budgetRows = projectBudgets.length > 0 ? projectBudgets : embeddedBudgets;
+    const embeddedBudgets = getEmbeddedBudgetRows(project);
+    const budgetRows = embeddedBudgets.length > 0 ? embeddedBudgets : projectBudgets;
     const budget = aggregateAnnualRows(budgetRows, startYear);
     const budgetTotal = budgetRows.reduce((sum, row) => sum + parseImportedAmount(row.amount), 0);
     const counterFund = aggregateAnnualRows(projectFunds, startYear);

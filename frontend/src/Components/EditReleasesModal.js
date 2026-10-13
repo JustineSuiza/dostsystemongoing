@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import {regions, provinces, cities, barangays} from 'select-philippines-address';
 import CurrencyInput from 'react-currency-input-field';
+import { updateImportedProject, updateImportedRelease } from '../firestoreImports';
 
 const EditReleasesModal = ({ isEditModalOpen, closeModal, project, refresh, showToastF }) => {
 
@@ -15,11 +14,10 @@ const EditReleasesModal = ({ isEditModalOpen, closeModal, project, refresh, show
     const [actualRelease, setActualRelease] = useState('');
     const [remarksReleases, setRemarksReleases] = useState('');
     const [statusReleases, setStatusReleases] = useState('');
-    const navigate = useNavigate();
-
 	const [showToast, setShowToast] = useState(false);
 	const [showToastSuccess, setShowToastSuccess] = useState(false);
 	const [toastTimeout, setToastTimeout] = useState(null);
+    const [saveError, setSaveError] = useState('');
 
     const [regionData, setRegion] = useState([]);
     const [provinceData, setProvince] = useState([]);
@@ -51,18 +49,21 @@ const EditReleasesModal = ({ isEditModalOpen, closeModal, project, refresh, show
     const updateProposal = async (e) => {
         e.preventDefault();
 
-        const isProgrammedAmountChanged = project.releaseData.programmedAmount && JSON.stringify(programmedAmount) !== JSON.stringify(project.releaseData.programmedAmount);
-        const isActualReleaseChanged = project.releaseData.actualRelease && JSON.stringify(actualRelease) !== JSON.stringify(project.releaseData.actualRelease);
-        const isChanged =
-        isProgrammedAmountChanged ||
-        regionIA !== project.releaseData.regionIA || 
-        particulars !== project.releaseData.particulars ||
-        dvNo !== project.releaseData.dvNo ||
-        dateOfRelease !== project.releaseData.dateOfRelease ||
-        month !== project.releaseData.month ||
-        isActualReleaseChanged ||
-        remarksReleases !== project.releaseData.remarksReleases ||
-        statusReleases !== project.releaseData.statusReleases;
+        const releaseData = project?.releaseData || {};
+        const updates = {
+            programmedAmount,
+            regionIA,
+            particulars,
+            dvNo,
+            dateOfRelease,
+            month,
+            actualRelease,
+            remarksReleases,
+            statusReleases,
+        };
+        const isChanged = Object.entries(updates).some(
+            ([field, value]) => String(value ?? '') !== String(releaseData[field] ?? '')
+        );
     
         if (!isChanged) {
             setShowToast(true);
@@ -77,23 +78,21 @@ const EditReleasesModal = ({ isEditModalOpen, closeModal, project, refresh, show
         }
     
         try {
-            await axios.patch(`http://localhost:8080/Releases/${project.releaseData.id}`, {
-                programmedAmount: programmedAmount,
-                regionIA: regionIA,
-                particulars: particulars,
-                dvNo: dvNo,
-                dateOfRelease: dateOfRelease,
-                month: month,
-                actualRelease: actualRelease,
-                remarksReleases: remarksReleases,
-                statusReleases: statusReleases,
-            });
+            setSaveError('');
+            if (releaseData.id) {
+                await updateImportedRelease(releaseData.id, updates);
+            } else {
+                await updateImportedProject(project.id, {
+                    releaseData: { ...releaseData, ...updates },
+                });
+            }
             closeModal();
 			refresh();
             showToastF();
             clear();
         } catch (error) {
             console.error('Error updating releases:', error);
+            setSaveError(error.message || 'Unable to save the release. Please try again.');
         }
     };
 
@@ -185,6 +184,11 @@ const EditReleasesModal = ({ isEditModalOpen, closeModal, project, refresh, show
 								</div>
                             </div>
                             <div className="modal-body">
+                                {saveError && (
+                                    <div className="alert alert-danger" role="alert">
+                                        {saveError}
+                                    </div>
+                                )}
 								<div className="row pt-3">
                                     <div className="col">
                                         <label className="pb-2">Programmed Amount</label>

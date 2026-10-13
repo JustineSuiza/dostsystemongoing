@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import FilterBudgetModal from './FilterBudgetModal';
 import { listImportedProjects, saveProjectRelatedRows } from '../firestoreImports';
+import ExpandableTitleCell, { getProjectDurationText } from './ExpandableTitleCell';
 
 const ProjectTitleCell = ({ title }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -560,6 +561,7 @@ const Budgets = ({ data, sidebarExpanded }) => {
 
                 return duration;
             },
+            cell: (row) => <ExpandableTitleCell title={getProjectDurationText(row)} />,
             sortable: true,
             wrap: true,
             width: '150px'

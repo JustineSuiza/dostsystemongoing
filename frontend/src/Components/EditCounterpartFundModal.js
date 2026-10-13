@@ -1,38 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import CurrencyInput from 'react-currency-input-field';
+import { getProjectDurationYears, updateImportedCounterpartFunds } from '../firestoreImports';
 
 const EditCounterpartFundModal = ({ isEditModalOpen, closeModal, project, refresh, showToastF }) => {
 
     const [counterFund, setCounterFund] = useState([]); 
     const [totalFund, setTotalFund] = useState('');
-    const [originalStart, setOriginalStart] = useState('');
-    const [originalEnd, setOriginalEnd] = useState('');
     const [remarks, setRemarks] = useState('');
 
 	const [showToast, setShowToast] = useState(false);
-	const [showToastSuccess, setShowToastSuccess] = useState(false);
 	const [toastTimeout, setToastTimeout] = useState(null);
+    const [saveError, setSaveError] = useState('');
 
-    // Fixed years from 2016 to 2030
     const fixedYears = Array.from({ length: 15 }, (_, i) => 2016 + i);
 
     useEffect(() => {
         if (project) {
-            console.log("Received project:", project);
-            // Build fund array based on fixed years 2016-2030, using existing values if present
-            const fundArray = fixedYears.map((year) => {
-                let amt = '';
-                if (project.counterFund && project.counterFund[year]) {
-                    const v = project.counterFund[year];
-                    amt = (typeof v === 'string') ? parseFloat(v.replace(/,/g, '')) : v;
-                }
-                return { year: year, amount: amt };
+            const existingYears = Object.keys(project.counterFund || {})
+                .filter((year) => /^\d{4}$/.test(year));
+            const durationYears = getProjectDurationYears(project);
+            const years = [...new Set([
+                ...durationYears,
+                ...existingYears,
+            ])].sort((first, second) => Number(first) - Number(second));
+            const fundYears = years.length > 0 ? years : fixedYears.map(String);
+            const fundArray = fundYears.map((year) => {
+                const value = project.counterFund?.[year];
+                const amount = value === undefined || value === null || value === ''
+                    ? ''
+                    : (typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value);
+                return { year: Number(year), amount };
             });
 
             setCounterFund(fundArray);
-            // Recalculate total from fund array
             const calculatedTotal = fundArray.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
             setTotalFund(calculatedTotal || 0);
             setRemarks(project.remarks || '');
@@ -49,19 +49,11 @@ const EditCounterpartFundModal = ({ isEditModalOpen, closeModal, project, refres
     const updateFund = async (e) => {
         e.preventDefault();
 
-        // Safely compare with original values (project may be null)
-        const origFundArray = project?.fundArray ?? [];
-        const isFundChanged = JSON.stringify(counterFund) !== JSON.stringify(origFundArray);
-
-        const origTotalRaw = project?.counterpartFundData?.totalFund ?? '0';
-        const origTotal = parseFloat(origTotalRaw.toString().replace(/,/g, '')) || 0;
-        const newTotal = parseFloat(totalFund || 0) || 0;
-        const isTotalFundChanged = newTotal !== origTotal;
-
-        const origRemarks = project?.remarks ?? '';
-        const isRemarksChanged = (remarks ?? '') !== origRemarks;
-
-        const isChanged = isFundChanged || isTotalFundChanged || isRemarksChanged;
+        const isFundChanged = counterFund.some(({ year, amount }) => (
+            Number(amount || 0) !== Number(project?.counterFund?.[year] || 0)
+        ));
+        const isRemarksChanged = (remarks ?? '') !== (project?.remarks ?? '');
+        const isChanged = isFundChanged || isRemarksChanged;
     
         if (!isChanged) {
             setShowToast(true);
@@ -76,33 +68,19 @@ const EditCounterpartFundModal = ({ isEditModalOpen, closeModal, project, refres
         }
     
         try {
-            const projectId = project?.id;
-            if (!projectId) throw new Error('Project ID missing');
-
-            await axios.patch(`http://localhost:8080/CounterpartFund/${projectId}`, {
-                counterFund: counterFund.map(item => ({ year: item.year, amount: item.amount })),
-                totalFund: totalFund,
-                remarks: remarks,
-            });
+            setSaveError('');
+            await updateImportedCounterpartFunds(
+                project,
+                counterFund.map(({ year, amount }) => ({ year, amount })),
+                remarks
+            );
             closeModal();
 			refresh();
             showToastF();
         } catch (error) {
             console.error('Error updating fund:', error);
+            setSaveError(error.message || 'Unable to save counterpart funds. Please try again.');
         }
-    };
-
-    const generateFundFields = () => {
-        const startYear = new Date(project.originalStart).getFullYear();
-        const endYear = new Date(project.originalEnd).getFullYear();
-        const years = endYear - startYear + 1;
-
-        const newFundData = Array.from({ length: years }, (_, index) => {
-            const year = startYear + index;
-            return { year, amount: '' };
-        });
-
-        setCounterFund(newFundData);
     };
 
     const handleFundChange = (index, amount) => {
@@ -143,6 +121,11 @@ const EditCounterpartFundModal = ({ isEditModalOpen, closeModal, project, refres
 								</div>
                             </div>
                             <div className="modal-body">
+                                {saveError && (
+                                    <div className="alert alert-danger" role="alert">
+                                        {saveError}
+                                    </div>
+                                )}
                                 <div className='container p-3 mt-2 rounded'>
                                     <h5 className='mb-3'><b>Edit Counterpart Funds</b></h5>
 

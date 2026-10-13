@@ -8,7 +8,8 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import EditCounterpartFundModal from './EditCounterpartFundModal';
 import FilterCounterpartFundModal from './FilterCounterpartFundModal';
-import { listImportedProjects, parseImportedAmount, saveProjectRelatedRows } from '../firestoreImports';
+import ExpandableTitleCell, { getProjectDurationText } from './ExpandableTitleCell';
+import { getProjectDurationYears, listImportedProjects, parseImportedAmount, saveProjectRelatedRows } from '../firestoreImports';
 
 const CounterpartFunds = ({ data, sidebarExpanded }) => {
     const [originalInfo, setOriginalInfo] = useState([]);
@@ -320,7 +321,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
         ...fixedYears,
         ...originalInfo.reduce((years, project) => {
             const projectYears = project.counterFund ? Object.keys(project.counterFund) : [];
-            projectYears.forEach(year => {
+            [...projectYears, ...getProjectDurationYears(project)].forEach(year => {
                 // Filter out invalid years (0, "0", null, or non-numeric values)
                 const yearNum = parseInt(year);
                 if (!isNaN(yearNum) && yearNum > 0 && !fixedYears.includes(year) && !years.includes(year)) {
@@ -334,8 +335,21 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
     const columns = [
         { name: 'No.', selector: (row, index) => index + 1, sortable: true, width: '70px' },
         { name: 'ISP', selector: (row) => row.ISP, sortable: true, wrap: true },
-        { name: 'Project Title', selector: (row) => row.projectTitle, sortable: true, wrap: true, width: '180px' },
-        { name: (<div>Implementing Agency</div>), selector: (row) => row.implementingAgency, sortable: true, wrap: true },
+        {
+            name: 'Project Title',
+            selector: (row) => row.projectTitle,
+            cell: (row) => <ExpandableTitleCell title={row.projectTitle || ''} />,
+            sortable: true,
+            wrap: true,
+            width: '180px'
+        },
+        {
+            name: (<div>Implementing Agency</div>),
+            selector: (row) => row.implementingAgency,
+            cell: (row) => <ExpandableTitleCell title={row.implementingAgency || ''} />,
+            sortable: true,
+            wrap: true
+        },
         { name: 'Program Leader', selector: (row) => row.programLeader, sortable: true, wrap: true, width: '160px' },
         {
             name: 'Duration',
@@ -386,6 +400,7 @@ const CounterpartFunds = ({ data, sidebarExpanded }) => {
 
                 return duration;
             },
+            cell: (row) => <ExpandableTitleCell title={getProjectDurationText(row)} />,
             sortable: true,
             wrap: true,
             width: '150px'

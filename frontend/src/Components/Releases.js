@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import './Dashboard.css';
 import EditReleasesModal from './EditReleasesModal';
 import FilterReleasesModal from './FilterReleasesModal';
+import ExpandableTitleCell, { getProjectDurationText } from './ExpandableTitleCell';
 import { listImportedProjects, parseImportedAmount, saveProjectRelatedRows } from '../firestoreImports';
 
 const Releases = ({ data, sidebarExpanded }) => {
@@ -340,10 +341,23 @@ const Releases = ({ data, sidebarExpanded }) => {
     const columns = [
         { name: 'No.', selector: (row, index) => index + 1, sortable: true, width: '70px' },
         { name: 'ISP', selector: (row) => row.ISP, sortable: true, wrap: true },
-        { name: 'Project Title', selector: (row) => row.projectTitle, sortable: true, wrap: true, width: '180px' },
+        {
+            name: 'Project Title',
+            selector: (row) => row.projectTitle,
+            cell: (row) => <ExpandableTitleCell title={row.projectTitle || ''} />,
+            sortable: true,
+            wrap: true,
+            width: '180px'
+        },
         { name: (<div>Programmed Amount</div>), selector: (row) => row.releaseData.programmedAmount, sortable: true, wrap: true, width: '140px' },
         { name: 'Total Budget', selector: (row) => row.totalBudget, sortable: true, wrap: true, width: '140px' },
-        { name: (<div>Implementing Agency</div>), selector: (row) => row.implementingAgency, sortable: true, wrap: true },
+        {
+            name: (<div>Implementing Agency</div>),
+            selector: (row) => row.implementingAgency,
+            cell: (row) => <ExpandableTitleCell title={row.implementingAgency || ''} />,
+            sortable: true,
+            wrap: true
+        },
         { name: 'Region of IA', selector: (row) => row.releaseData.regionIA, sortable: true, wrap: true, width: '140px' },
         {
             name: 'Duration',
@@ -394,6 +408,7 @@ const Releases = ({ data, sidebarExpanded }) => {
 
                 return duration;
             },
+            cell: (row) => <ExpandableTitleCell title={getProjectDurationText(row)} />,
             sortable: true,
             wrap: true,
             width: '150px'

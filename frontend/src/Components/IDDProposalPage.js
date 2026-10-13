@@ -5,6 +5,7 @@ import './Goals.css';
 import { normalizeImportedIDDProposalRows } from './iddProposalImportUtils';
 import { formatProposalDetailValue, reconcileProposalRows } from './proposalImportUtils';
 import { archiveImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
+import ExpandableTitleCell from './ExpandableTitleCell';
 
 const IDDProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -207,7 +208,7 @@ const IDDProposalPage = ({ sidebarExpanded }) => {
     { name: 'Date Received', selector: row => row.dateReceived || '-', sortable: true },
     { name: 'Date Actioned', selector: row => row.dateActioned || '-', sortable: true },
     { name: 'Lead TRD', selector: row => row.leadTRD || '-', sortable: true },
-    { name: 'Proposal Title', selector: row => row.proposalTitle || '-', sortable: true, wrap: true },
+    { name: 'Proposal Title', selector: row => row.proposalTitle || '-', cell: row => <ExpandableTitleCell title={row.proposalTitle || '-'} />, sortable: true, wrap: true },
     { name: 'Project Leader', selector: row => row.projectLeader || '-', sortable: true },
     { name: 'Implementing Agency', selector: row => row.implementingAgency || '-', sortable: true },
     { name: 'Proposed Budget', selector: row => row.proposedBudget || '-', sortable: true },

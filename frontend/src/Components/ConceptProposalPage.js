@@ -5,6 +5,7 @@ import './Goals.css';
 import { normalizeImportedConceptProposalRows } from './conceptProposalImportUtils';
 import { formatProposalDetailValue, reconcileProposalRows } from './proposalImportUtils';
 import { archiveImportedRow, listImportedRows, saveImportedRows, updateImportedRow } from '../firestoreImports';
+import ExpandableTitleCell from './ExpandableTitleCell';
 
 const ConceptProposalPage = ({ sidebarExpanded }) => {
   const [rows, setRows] = useState([]);
@@ -133,7 +134,7 @@ const ConceptProposalPage = ({ sidebarExpanded }) => {
     { name: 'Date Received', selector: row => row.dateReceived || '-', sortable: true, minWidth: '120px', grow: 1 },
     { name: 'Date Actioned', selector: row => row.dateActioned || '-', sortable: true, minWidth: '120px', grow: 1 },
     { name: 'Lead TRD', selector: row => row.leadTRD || '-', sortable: true, minWidth: '120px', grow: 1 },
-    { name: 'Concept Proposal Title', selector: row => row.conceptTitle || '-', sortable: true, wrap: true, minWidth: '280px', grow: 2, cell: row => <div style={{whiteSpace:'normal', wordBreak:'break-word', overflowWrap:'break-word', display:'block', width:'100%'}}>{row.conceptTitle || '-'}</div> },
+    { name: 'Concept Proposal Title', selector: row => row.conceptTitle || '-', sortable: true, wrap: true, minWidth: '280px', grow: 2, cell: row => <ExpandableTitleCell title={row.conceptTitle || '-'} /> },
     { name: 'Project Leader', selector: row => row.projectLeader || '-', sortable: true, minWidth: '150px', grow: 1 },
     { name: 'Implementing Agency', selector: row => row.implementingAgency || '-', sortable: true, minWidth: '160px', grow: 1 },
     { name: 'Proposed Budget', selector: row => row.proposedBudget || '-', sortable: true, minWidth: '130px', grow: 1 },

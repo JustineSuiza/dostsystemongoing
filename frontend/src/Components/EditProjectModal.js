@@ -564,7 +564,17 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
         const formattedPReview = programReview.map(formatValue).join(', ');
         const formattedTReview = terminalReview.map(formatValue).join(', ');
 
-        const isBudgetChanged = project.budgetArray && JSON.stringify(budget) !== JSON.stringify(project.budgetArray);
+        const originalBudgetArray = project.budgetArray || (Array.isArray(project.budgetData)
+            ? project.budgetData.map(({ year, amount }) => ({ year: Number(year), amount: Number(amount) || 0 }))
+            : (Array.isArray(project.budget)
+                ? project.budget.map(({ year, amount }) => ({ year: Number(year), amount: Number(amount) || 0 }))
+                : Object.entries(project.budget || {}).map(([year, amount]) => ({
+                    year: Number(year),
+                    amount: Number(amount) || 0,
+                }))));
+        const isBudgetChanged = JSON.stringify(
+            budget.map(({ year, amount }) => ({ year: Number(year), amount: Number(amount) || 0 }))
+        ) !== JSON.stringify(originalBudgetArray);
         const parseBudgetAmount = (value) => Number(String(value ?? '').replace(/,/g, '')) || 0;
         const isTotalBudgetChanged = parseBudgetAmount(totalBudget) !== parseBudgetAmount(project.totalBudget);
         const originalSixPs = project.sixPsArray || Object.values(project.sixPs || {});
@@ -672,6 +682,8 @@ const EditProjectModal = ({ isEditModalOpen, closeModal, project, refresh, showT
                 responsiblePerson: responsiblePerson,
                 funding: funding,
                 budget: budget.map(item => ({ year: item.year, amount: item.amount })),
+                budgetArray: budget.map(item => ({ year: item.year, amount: item.amount })),
+                budgetData: budget.map(item => ({ year: item.year, amount: item.amount })),
                 totalBudget: totalBudget,
                 implementingAgency: implementingAgency,
                 programLeader: programLeader,

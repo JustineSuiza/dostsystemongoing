@@ -73,12 +73,14 @@ service cloud.firestore {
 
     match /counterpartFunds/{documentId} {
       allow read: if isApprovedUser();
-      allow write: if isAdmin();
+      allow create, update: if canEditProject();
+      allow delete: if isAdmin();
     }
 
     match /releases/{documentId} {
       allow read: if isApprovedUser();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if canEditProject();
     }
 
     match /proposals/{documentId} {

@@ -17,32 +17,9 @@ import FileModal from './FileModal';
 import { pdfjs } from 'react-pdf';
 import PdfModal from './PdfModal';
 import { archiveImportedRow, listImportedProjects, saveImportedRows } from '../firestoreImports';
+import ExpandableTitleCell from './ExpandableTitleCell';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
-
-const ProjectTitleCell = ({ title }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    return (
-        <span
-            title={title}
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{
-                display: isExpanded ? 'block' : '-webkit-box',
-                width: '100%',
-                overflow: 'hidden',
-                textOverflow: isExpanded ? 'clip' : 'ellipsis',
-                whiteSpace: isExpanded ? 'normal' : undefined,
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: isExpanded ? 'unset' : 3,
-                overflowWrap: 'anywhere',
-                cursor: 'pointer',
-            }}
-        >
-            {title}
-        </span>
-    );
-};
 
 const ProjectActionsDropdown = ({ row, onView, onEdit, onAddFile, onDelete }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -585,7 +562,7 @@ const Projects = ({ sidebarExpanded }) => {
         {
             name: 'Program Title',
             selector: (row) => row.programTitle ?? '',
-            cell: (row) => <ProjectTitleCell title={row.programTitle ?? ''} />,
+            cell: (row) => <ExpandableTitleCell title={row.programTitle ?? ''} />,
             sortable: true,
             width: '200px',
             minWidth: '200px',
@@ -595,7 +572,7 @@ const Projects = ({ sidebarExpanded }) => {
         {
             name: 'Project Title',
             selector: (row) => row.projectTitle ?? '',
-            cell: (row) => <ProjectTitleCell title={row.projectTitle ?? ''} />,
+            cell: (row) => <ExpandableTitleCell title={row.projectTitle ?? ''} />,
             sortable: true,
             width: '200px',
             minWidth: '200px',
@@ -604,7 +581,7 @@ const Projects = ({ sidebarExpanded }) => {
         {
             name: 'Implementing Agency',
             selector: (row) => row.implementingAgency ?? '',
-            cell: (row) => <ProjectTitleCell title={row.implementingAgency ?? ''} />,
+            cell: (row) => <ExpandableTitleCell title={row.implementingAgency ?? ''} />,
             sortable: true,
             width: '200px',
             minWidth: '200px',
