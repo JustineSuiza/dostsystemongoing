@@ -31,7 +31,7 @@ const Login = ({ handleLogin }) => {
   };
 
   return (
-    <section className="vh-100">
+    <section className="vh-100 auth-bg">
       <div className="containerr py-5 h-100">
         <Row className="d-flex justify-content-center align-items-center h-100">
           <Col xl={10}>

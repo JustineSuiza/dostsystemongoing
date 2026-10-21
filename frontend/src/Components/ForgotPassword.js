@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Row, Col, Card, Toast } from 'react-bootstrap';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
+import './login-style.css';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <section className="vh-100">
+    <section className="vh-100 auth-bg">
       <Container className="py-5 h-100">
         <Row className="d-flex justify-content-center align-items-center h-100">
           <Col xl={6}>

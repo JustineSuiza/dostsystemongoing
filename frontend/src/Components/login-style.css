@@ -18,3 +18,10 @@
 .containerr:hover {
     box-shadow: none;
 }
+
+.auth-bg {
+    background-image: url('./Images/dost-background-login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
