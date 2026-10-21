@@ -25,7 +25,7 @@ class EmailController extends BaseController
     $email = \Config\Services::email();
     $model = new UserModel();
 
-    $from = 'dostiarrd@gmail.com';
+    $from = 'justinesuiza1@gmail.com';
     $to = $this->request->getVar('to');
 
     // Retrieve the user from the database
@@ -182,7 +182,7 @@ public function resetPassword()
         file_put_contents($filePath, $binary);
 
         $email = \Config\Services::email();
-        $email->setFrom('dostiarrd@gmail.com', 'DOST-iARRD System');
+        $email->setFrom('justinesuiza1@gmail.com', 'DOST-iARRD System');
         $email->setTo($to);
         $email->setSubject($subject);
         $email->setMessage(
