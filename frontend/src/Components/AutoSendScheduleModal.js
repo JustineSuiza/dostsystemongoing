@@ -43,7 +43,13 @@ const AutoSendScheduleModal = ({ isModalOpen, closeModal, user, refresh }) => {
             setSendResult({ type: 'success', message: `Projects Excel sent to ${user.email}.` });
         } catch (error) {
             console.error('Instant send failed:', error);
-            setSendResult({ type: 'error', message: 'Unable to send the email. Make sure the backend (spark serve) is running.' });
+            const detail = error?.apiError || error?.response?.data?.error;
+            setSendResult({
+                type: 'error',
+                message: detail
+                    ? `Gmail could not send the email: ${detail}`
+                    : 'Unable to send the email. Check your internet connection and try again.',
+            });
         } finally {
             setSending(false);
         }

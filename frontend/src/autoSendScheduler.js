@@ -6,6 +6,14 @@ import { listImportedProjects } from './firestoreImports';
 
 const API_BASE = 'http://localhost:8080';
 
+// Google Apps Script web app that sends the Excel report by Gmail — Firebase
+// Hosting is static-only (no PHP backend), so the live site posts here
+// instead of /sendEmailExcel. Must match deploy/SendExcelEmail.gs.
+const EXCEL_EMAIL_ENDPOINT =
+  process.env.REACT_APP_EXCEL_EMAIL_URL ||
+  'https://script.google.com/macros/s/AKfycbyNkrqlze6JIclcty6ykEipuXFoer2lTxPbENqLNemTe-JHFY-QP1zjnyAcPb0xxOK-yg/exec';
+const EXCEL_EMAIL_TOKEN = 'dost-excel-send-2026';
+
 export const WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const buildProjectsExcelBase64 = (projects) => {
@@ -98,14 +106,32 @@ export const sendProjectsExcel = async (to, { firstName = '', context = 'schedul
   const contentBase64 = buildProjectsExcelBase64(projects);
   const today = new Date().toLocaleDateString();
   const fileName = `DOST-Projects-${new Date().toISOString().slice(0, 10)}.xlsx`;
-
-  return axios.post(`${API_BASE}/sendEmailExcel`, {
+  const payload = {
     to,
     subject: `DOST Projects Report - ${today}`,
     message: `Hello ${firstName || ''},\n\nAttached is the DOST Projects Excel report for ${today}. This report was sent ${context === 'manual' ? 'on demand' : 'automatically based on the schedule set for your account'}.`,
     fileName,
     contentBase64,
-  });
+  };
+
+  if (EXCEL_EMAIL_ENDPOINT) {
+    // text/plain keeps this a CORS "simple request" — Apps Script has no
+    // OPTIONS handler, so application/json would be blocked by preflight.
+    const response = await axios.post(
+      EXCEL_EMAIL_ENDPOINT,
+      JSON.stringify({ ...payload, token: EXCEL_EMAIL_TOKEN }),
+      { headers: { 'Content-Type': 'text/plain;charset=utf-8' } }
+    );
+    const data = response.data;
+    if (!data || data.ok !== true) {
+      const apiError = new Error((data && data.error) || 'The email service did not confirm the send.');
+      apiError.apiError = apiError.message;
+      throw apiError;
+    }
+    return response;
+  }
+
+  return axios.post(`${API_BASE}/sendEmailExcel`, payload);
 };
 
 export const runAutoSendScheduler = async () => {
