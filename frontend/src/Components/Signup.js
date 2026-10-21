@@ -14,6 +14,7 @@ const Signup = () => {
     const [last_name, setLastname] = useState('');
     const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     
@@ -102,7 +103,26 @@ const Signup = () => {
                           </div>
                           <div className="form-outline mb-4">
                             <h6>Password</h6>
-                            <input type="password" id="password" className="form-control form-control-lg" value={password} onChange={(e) => setPassword(e.target.value)} minLength="6" required />
+                            <div className="position-relative">
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                id="password"
+                                className="form-control form-control-lg pe-5"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                minLength="6"
+                                required
+                              />
+                              <button
+                                type="button"
+                                className="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent"
+                                style={{ color: '#0e2238' }}
+                                onClick={() => setShowPassword((value) => !value)}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              >
+                                <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                              </button>
+                            </div>
                           </div>
                           <div className="pt-1 mb-4">
                             <button className="btn btn-lg" style={{ backgroundColor: '#0e2238', color: '#ffffff' }}>Sign Up</button>
