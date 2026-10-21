@@ -8,9 +8,10 @@ import Switch from 'react-switch';
 import './Proposals.css';
 import EditUserModal from './EditUserModal';
 import AutoSendScheduleModal from './AutoSendScheduleModal';
+import DeleteUserModal from './DeleteUserModal';
 import { describeSchedule } from '../autoSendScheduler';
 
-const UserActionsDropdown = ({ row, isApproving, isToggling, onApprove, onEdit, onToggleAutoSend, onSchedule }) => {
+const UserActionsDropdown = ({ row, isApproving, isToggling, onApprove, onEdit, onToggleAutoSend, onSchedule, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -130,6 +131,21 @@ const UserActionsDropdown = ({ row, isApproving, isToggling, onApprove, onEdit, 
                 </div>
               </div>
             </li>
+            <li><hr className="dropdown-divider m-1" /></li>
+            <li
+              className='m-1 notif-item'
+              style={{ width: '210px', color: '#dc3545' }}
+              onClick={() => { setIsOpen(false); onDelete(row); }}
+            >
+              <div className="d-flex align-items-center">
+                <div className='p-1 px-2 pt-1 me-1'>
+                  <i className="bi bi-trash fs-5"></i>
+                </div>
+                <div className='d-flex flex-column'>
+                  <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Delete account</div>
+                </div>
+              </div>
+            </li>
           </ul>,
           document.body
         )}
@@ -149,6 +165,8 @@ const Users = ({ sidebarExpanded }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleUser, setScheduleUser] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState(null);
 
   const getUsers = useCallback(async () => {
     try {
@@ -228,6 +246,16 @@ const Users = ({ sidebarExpanded }) => {
     setScheduleUser(null);
   };
 
+  const handleDelete = (user) => {
+    setDeleteUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteClose = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteUser(null);
+  };
+
   const formatDate = (timestamp) => {
     const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
@@ -262,6 +290,7 @@ const Users = ({ sidebarExpanded }) => {
           onEdit={handleEditOpen}
           onToggleAutoSend={toggleAutoSend}
           onSchedule={handleScheduleOpen}
+          onDelete={handleDelete}
         />
       ),
       width: '120px',
@@ -321,6 +350,14 @@ const Users = ({ sidebarExpanded }) => {
           isModalOpen={isScheduleModalOpen}
           closeModal={handleScheduleClose}
           user={scheduleUser}
+          refresh={getUsers}
+        />
+      )}
+      {deleteUser && (
+        <DeleteUserModal
+          isModalOpen={isDeleteModalOpen}
+          closeModal={handleDeleteClose}
+          user={deleteUser}
           refresh={getUsers}
         />
       )}
