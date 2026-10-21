@@ -36,6 +36,8 @@ $routes->resource('ArchiveCounterpartFund');
 
 $routes->post('sendEmail', 'EmailController::sendEmail');
 
+$routes->post('sendEmailExcel', 'EmailController::sendEmailExcel');
+
 $routes->post('checkEmail', 'EmailController::checkEmail');
 
 $routes->post('resetPassword', 'EmailController::resetPassword');

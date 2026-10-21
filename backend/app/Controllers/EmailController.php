@@ -139,4 +139,73 @@ public function resetPassword()
     return $this->respond(['message' => 'Password reset successfully'], 200);
 }
 
+    /**
+     * Sends the DOST projects Excel file (built by the frontend) to an
+     * account email address as an attachment. Used by the automatic
+     * scheduled "auto-send Project Excel" feature on the Accounts page.
+     */
+    public function sendEmailExcel()
+    {
+        $to = $this->request->getVar('to');
+        $subject = $this->request->getVar('subject') ?: 'DOST Projects Report';
+        $message = $this->request->getVar('message') ?: 'Please find attached the DOST projects Excel report.';
+        $fileName = $this->request->getVar('fileName') ?: 'DOST-Projects.xlsx';
+        $contentBase64 = $this->request->getVar('contentBase64');
+
+        if (!$to || !$contentBase64) {
+            return $this->respond(['error' => 'Recipient email and Excel file are required'], 400);
+        }
+
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return $this->respond(['error' => 'Invalid recipient email address'], 400);
+        }
+
+        $binary = base64_decode($contentBase64, true);
+        if ($binary === false || $binary === '') {
+            return $this->respond(['error' => 'Invalid Excel file content'], 400);
+        }
+
+        if (strlen($binary) > 8 * 1024 * 1024) {
+            return $this->respond(['error' => 'Excel file is too large (max 8MB)'], 400);
+        }
+
+        $attachDir = WRITEPATH . 'attachments' . DIRECTORY_SEPARATOR;
+        if (!is_dir($attachDir)) {
+            mkdir($attachDir, 0777, true);
+        }
+
+        $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', basename($fileName));
+        if (substr(strtolower($safeName), -5) !== '.xlsx') {
+            $safeName .= '.xlsx';
+        }
+        $filePath = $attachDir . uniqid('report_', true) . '_' . $safeName;
+        file_put_contents($filePath, $binary);
+
+        $email = \Config\Services::email();
+        $email->setFrom('dostiarrd@gmail.com', 'DOST-iARRD System');
+        $email->setTo($to);
+        $email->setSubject($subject);
+        $email->setMessage(
+            '<html><body style="font-family: Arial, sans-serif;">'
+            . '<h2>DOST Projects Report</h2>'
+            . '<p>' . nl2br(htmlspecialchars($message)) . '</p>'
+            . '<p>This report was generated automatically by the DOST System.</p>'
+            . '</body></html>'
+        );
+        $email->setMailType('html');
+        $email->attach($filePath, 'attachment', $safeName);
+
+        $sent = $email->send();
+
+        if (is_file($filePath)) {
+            @unlink($filePath);
+        }
+
+        if ($sent) {
+            return $this->respond(['message' => 'Email sent successfully'], 200);
+        }
+
+        return $this->respond(['error' => 'Unable to send email'], 500);
+    }
+
 }

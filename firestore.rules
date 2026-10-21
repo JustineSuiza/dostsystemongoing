@@ -42,8 +42,20 @@ service cloud.firestore {
           && request.resource.data.last_name is string
         ) || (
           isAdmin()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name', 'user_lvl'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name', 'email', 'user_lvl', 'auto_send_excel', 'auto_send_schedule'])
+          && request.resource.data.first_name is string
+          && request.resource.data.last_name is string
+          && request.resource.data.email is string
           && request.resource.data.user_lvl in ['0', '1', '2']
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['auto_send_excel'])
+            || request.resource.data.auto_send_excel is bool
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['auto_send_schedule'])
+            || request.resource.data.auto_send_schedule is map
+            || request.resource.data.auto_send_schedule == null
+          )
         )
       );
 
@@ -116,6 +128,22 @@ service cloud.firestore {
     match /disbursementVouchers/{documentId} {
       allow read: if isApprovedUser();
       allow write: if isAdmin();
+    }
+
+    match /emailSchedules/{scheduleId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /emailSettings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /internalEmailSettings/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /emailScheduleOAuthStates/{stateId} {
+      allow read, write: if false;
     }
   }
 }

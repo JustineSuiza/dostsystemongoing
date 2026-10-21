@@ -10,6 +10,7 @@ import Signup from './Components/Signup';
 import ForgotPassword from './Components/ForgotPassword';
 import EmailForm from './Components/EmailForm';
 import { auth, db } from './firebase';
+import { runAutoSendScheduler } from './autoSendScheduler';
 
 const clearLocalSession = () => {
   localStorage.removeItem('isLoggedIn');
@@ -77,6 +78,14 @@ function App() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return undefined;
+
+    runAutoSendScheduler();
+    const schedulerInterval = setInterval(runAutoSendScheduler, 60 * 1000);
+    return () => clearInterval(schedulerInterval);
+  }, [loggedIn]);
 
   const handleLogin = async (email, password) => {
     let credential;

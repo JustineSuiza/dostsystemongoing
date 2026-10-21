@@ -1,27 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import './Modal.css'
 
 const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
 
     const [first_name, setFirstname] = useState('');
     const [last_name, setLastname] = useState('');
-    // const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
     const [user_lvl, setUserlvl] = useState('');
 
     const [showToast, setShowToast] = useState(false);
     const [toastTimeout, setToastTimeout] = useState(null);
+    const [saveError, setSaveError] = useState('');
 
     useEffect(() => {
         if (user) {
-            setFirstname(user.first_name);
-            setLastname(user.last_name);
-            // setUsername(user.username);
-            setPassword(user.password);
-            setEmail(user.email);
-            setUserlvl(user.user_lvl);
+            setFirstname(user.first_name ?? '');
+            setLastname(user.last_name ?? '');
+            setEmail(user.email ?? '');
+            setUserlvl(user.user_lvl ?? '');
+            setSaveError('');
         }
     }, [user]);
 
@@ -29,12 +28,10 @@ const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
         e.preventDefault();
     
         const isChanged =
-        first_name !== user.first_name ||
-        last_name !== user.last_name ||
-        // username !== user.username ||
-        password !== user.password ||
-        email !== user.email ||
-        user_lvl !== user.user_lvl;
+        first_name !== (user.first_name ?? '') ||
+        last_name !== (user.last_name ?? '') ||
+        email !== (user.email ?? '') ||
+        user_lvl !== (user.user_lvl ?? '');
     
         if (!isChanged) {
             setShowToast(true);
@@ -49,23 +46,18 @@ const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
         }
     
         try {
-            await axios.patch(`http://localhost:8080/Accounts/${user.id}`, {
+            setSaveError('');
+            await updateDoc(doc(db, 'users', user.id), {
                 first_name: first_name,
                 last_name: last_name,
-                // username: username,
-                password: password,
                 email: email,
                 user_lvl: user_lvl,
             });
-            console.log('User updated successfully');
-            // Update the localStorage with the new first name
-            localStorage.setItem('first_name', first_name);
             closeModal();
             refresh();
-            // Refresh the page
-            window.location.reload();
         } catch (error) {
             console.error('Error updating user:', error);
+            setSaveError('Unable to save changes. Please try again.');
         }
     };
 
@@ -93,6 +85,7 @@ const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
                                 </div>
                             </div>
                             <div className="modal-body">
+                            {saveError && <div className="alert alert-danger" role="alert">{saveError}</div>}
                             <div className="mb-3">
                                     <label className="form-label">First Name</label>
                                     <input
@@ -121,15 +114,6 @@ const EditUserProfile = ({ isEditModalOpen, closeModal, user, refresh }) => {
                                         onChange={(e) => setUsername(e.target.value)}
                                     />
                                 </div> */}
-                                <div className="mb-3">
-                                    <label className="form-label">Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
-                                </div>
                                 <div className="mb-3">
                                     <label className="form-label">Email</label>
                                     <input

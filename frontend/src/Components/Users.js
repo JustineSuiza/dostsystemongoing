@@ -1,8 +1,141 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import { Tooltip } from 'react-tooltip';
 import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import Switch from 'react-switch';
+import './Proposals.css';
+import EditUserModal from './EditUserModal';
+import AutoSendScheduleModal from './AutoSendScheduleModal';
+import { describeSchedule } from '../autoSendScheduler';
+
+const UserActionsDropdown = ({ row, isApproving, isToggling, onApprove, onEdit, onToggleAutoSend, onSchedule }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState({});
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const position = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const menuWidth = 250;
+      const top = rect.bottom + 4;
+      const left = Math.max(8, Math.min(rect.left - menuWidth, window.innerWidth - menuWidth - 8));
+      setMenuStyle({
+        top: `${top}px`,
+        left: `${left}px`,
+        maxHeight: `calc(100vh - ${top + 8}px)`,
+        overflowY: 'auto',
+      });
+    };
+
+    position();
+    window.addEventListener('scroll', position, true);
+    window.addEventListener('resize', position);
+
+    const handleOutsideClick = (e) => {
+      const menu = menuRef.current;
+      const button = buttonRef.current;
+      if (menu && !menu.contains(e.target) && button && !button.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+      window.removeEventListener('scroll', position, true);
+      window.removeEventListener('resize', position);
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const canApprove = row.user_lvl === '2';
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        className="btn btn-outline rounded-circle"
+        style={{ paddingInline: '11px' }}
+        type="button"
+        aria-label="Account actions"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <i className="fa-solid fa-ellipsis"></i>
+      </button>
+      {isOpen &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            className="dropdown-menu border-0 p-0 m-0 h-auto w-auto shadow-lg text-start show"
+            style={{ position: 'fixed', zIndex: 1060, minWidth: '250px', ...menuStyle }}
+          >
+            {canApprove && (
+              <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); if (!isApproving) onApprove(row.id); }}>
+                <div className="d-flex align-items-center">
+                  <div className='p-1 px-2 pt-1 me-1'>
+                    <i className="bi bi-person-check fs-5"></i>
+                  </div>
+                  <div className='d-flex flex-column'>
+                    <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>{isApproving ? 'Approving...' : 'Approve account'}</div>
+                  </div>
+                </div>
+              </li>
+            )}
+            <li><hr className="dropdown-divider m-1" /></li>
+            <li className='m-1' style={{ width: '210px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="d-flex align-items-center justify-content-between px-2 py-1">
+                <div className='d-flex flex-column pe-2'>
+                  <div className='fw-medium' style={{ fontSize: '13px' }}>Auto-send Project Excel</div>
+                  <div className='text-muted text-truncate' style={{ fontSize: '11px', maxWidth: '140px' }} title={row.email}>Send to {row.email}</div>
+                </div>
+                <Switch
+                  onChange={(checked) => onToggleAutoSend(row, checked)}
+                  checked={!!row.auto_send_excel}
+                  disabled={isToggling}
+                  height={16}
+                  width={32}
+                  handleDiameter={14}
+                  uncheckedIcon={false}
+                  checkedIcon={false}
+                  offColor="#adb5bd"
+                  onColor="#0d6efd"
+                  aria-label="Auto-send Project Excel"
+                />
+              </div>
+            </li>
+            <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); onSchedule(row); }}>
+              <div className="d-flex align-items-center">
+                <div className='p-1 px-2 pt-1 me-1'>
+                  <i className="bi bi-calendar-event fs-5"></i>
+                </div>
+                <div className='d-flex flex-column'>
+                  <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Schedule Sending</div>
+                  <div className='text-muted' style={{ fontSize: '11px' }}>{describeSchedule(row.auto_send_schedule)}</div>
+                </div>
+              </div>
+            </li>
+            <li className='m-1 notif-item' style={{ width: '210px' }} onClick={() => { setIsOpen(false); onEdit(row); }}>
+              <div className="d-flex align-items-center">
+                <div className='p-1 px-2 pt-1 me-1'>
+                  <i className="bi bi-pencil-square fs-5"></i>
+                </div>
+                <div className='d-flex flex-column'>
+                  <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>Edit</div>
+                </div>
+              </div>
+            </li>
+          </ul>,
+          document.body
+        )}
+    </>
+  );
+};
 
 const Users = ({ sidebarExpanded }) => {
   const [users, setUsers] = useState([]);
@@ -10,7 +143,12 @@ const Users = ({ sidebarExpanded }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [approvingId, setApprovingId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
   const [error, setError] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleUser, setScheduleUser] = useState(null);
 
   const getUsers = useCallback(async () => {
     try {
@@ -56,6 +194,40 @@ const Users = ({ sidebarExpanded }) => {
     }
   };
 
+  const handleEditOpen = (user) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const toggleAutoSend = async (user, checked) => {
+    setTogglingId(user.id);
+    setError('');
+    try {
+      await updateDoc(doc(db, 'users', user.id), { auto_send_excel: checked });
+      await getUsers();
+    } catch (toggleError) {
+      console.error('Error updating auto-send setting:', toggleError);
+      setError('Unable to update the auto-send setting. Please try again.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleScheduleOpen = (user) => {
+    setScheduleUser(user);
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleScheduleClose = () => {
+    setIsScheduleModalOpen(false);
+    setScheduleUser(null);
+  };
+
   const formatDate = (timestamp) => {
     const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
@@ -81,17 +253,18 @@ const Users = ({ sidebarExpanded }) => {
     { name: 'Date Created', selector: (row) => formatDate(row.created_at), sortable: true, wrap: true },
     {
       name: 'Actions',
-      cell: (row) => row.user_lvl === '2' && (
-        <button
-          type="button"
-          className="btn btn-outline-success btn-sm"
-          disabled={approvingId === row.id}
-          onClick={() => handleApproved(row.id)}
-        >
-          {approvingId === row.id ? 'Approving...' : 'Approve account'}
-        </button>
+      cell: (row) => (
+        <UserActionsDropdown
+          row={row}
+          isApproving={approvingId === row.id}
+          isToggling={togglingId === row.id}
+          onApprove={handleApproved}
+          onEdit={handleEditOpen}
+          onToggleAutoSend={toggleAutoSend}
+          onSchedule={handleScheduleOpen}
+        />
       ),
-      width: '180px',
+      width: '120px',
     },
   ];
 
@@ -135,6 +308,22 @@ const Users = ({ sidebarExpanded }) => {
           fontSize: isMobile ? '12px' : '14px',
         }}
       />
+      {selectedUser && (
+        <EditUserModal
+          isEditModalOpen={isEditModalOpen}
+          closeModal={handleEditClose}
+          user={selectedUser}
+          refresh={getUsers}
+        />
+      )}
+      {scheduleUser && (
+        <AutoSendScheduleModal
+          isModalOpen={isScheduleModalOpen}
+          closeModal={handleScheduleClose}
+          user={scheduleUser}
+          refresh={getUsers}
+        />
+      )}
     </article>
   );
 };
