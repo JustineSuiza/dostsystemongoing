@@ -248,7 +248,7 @@ const Sidebar = ({ openModal, openSidebar, closeSidebar }) => {
                       </div>
                     </div>
                   </li>
-                  <li className='m-1 notif-item'>
+                  <li className='m-1 notif-item' style={{ display: 'none' }}>
                     <div className=" d-flex align-items-center">
                       <div className='d-flex flex-column float'>
                                 <div className='fw-medium' style={{ fontSize: '13px', paddingTop: '2px' }}>
