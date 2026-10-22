@@ -358,7 +358,7 @@ const AddProjectModal = () => {
                                 <div className='container border p-4 mt-3 rounded'>
                                     <h5><b>Project Details</b></h5>
                                     <div className="row pt-3">
-                                        <div className="col">
+                                        <div className='col-md-4'>
                                             <label className="pb-2">ISP</label>
                                             <input
                                                 className="form-control dropdown-toggle"
@@ -405,6 +405,26 @@ const AddProjectModal = () => {
                                                 </li>
                                             </ul>
                                         </div>
+                                        <div className='col-md-4'>
+                                            <label className="pb-2">PALIHAN Code(project)</label>
+                                            <input type="number" className="form-control" value={projectCode} onChange={(e) => setProjectCode(e.target.value)} required />
+                                        </div>
+                                        <div className='col-md-4'>
+                                            <label className="pb-2">PALIHAN Code(program)</label>
+                                            <input type="text" className="form-control" value={programCode} onChange={(e) => setProgramCode(e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="row pt-3">
+                                        <div className="col">
+                                            <label className="pb-2">Program Title</label>
+                                            <textarea type="text" className="form-control" value={programTitle} onChange={(e) => setProgramTitle(e.target.value)} required />
+                                        </div>
+                                        <div className="col">
+                                            <label className="pb-2">Project Title</label>
+                                            <textarea type="text" className="form-control" value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} required />
+                                        </div>
+                                    </div>
+                                    <div className="row pt-3">
                                         <div className="col">
                                             <label className="pb-2">Responsible Person</label>
                                             <input
@@ -445,41 +465,37 @@ const AddProjectModal = () => {
                                             </ul>
                                         </div>
                                         <div className="col">
-                                            <label className="pb-2">PALIHAN Code(program)</label>
-                                            <input type="text" className="form-control" value={programCode} onChange={(e) => setProgramCode(e.target.value)} />
+                                            <label className="pb-2">Funding</label>
+                                            <input
+                                                className="form-control w-100 dropdown-toggle"
+                                                id="dropFunding"
+                                                data-bs-toggle="dropdown"
+                                                aria-haspopup="true"
+                                                aria-expanded="false"
+                                                value={funding}
+                                                onChange={(e) => setFunding(e.target.value)}
+                                                placeholder='Select Funding'
+                                                readOnly
+                                            />
+                                            <ul className="dropdown-menu p-0" aria-labelledby="dropFunding">
+                                                <li className="dropdown-item" onClick={handleFundingChange}>DOST GIA</li>
+                                                <li className="dropdown-item" onClick={handleFundingChange}>PCAARRD GIA</li>
+                                            </ul>
                                         </div>
                                         <div className="col">
-                                            <label className="pb-2">Program Title</label>
-                                            <textarea type="text" className="form-control" value={programTitle} onChange={(e) => setProgramTitle(e.target.value)} required />
+                                            <label className="pb-2">Implementing Agency</label>
+                                            <input type="text" className="form-control" value={ implementingAgency } onChange={ (e) => setImplementingAgency(e.target.value) } />
                                         </div>
-                                    </div>
-                                    <div className="row pt-3">
                                         <div className="col">
                                             <label className="pb-2">Program Leader</label>
                                             <input type="text" className="form-control" value={ programLeader } onChange={ (e) => setProgramLeader(e.target.value) } />
                                         </div>
                                         <div className="col">
-                                            <label className="pb-2">PALIHAN Code(project)</label>
-                                            <input type="number" className="form-control" value={projectCode} onChange={(e) => setProjectCode(e.target.value)} required />
-                                        </div>
-                                        <div className="col">
-                                            <label className="pb-2">Project Title</label>
-                                            <textarea type="text" className="form-control" value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} required />
-                                        </div>
-                                    </div>
-                                    <div className="row pt-3">
-                                        <div className="col">
-                                            <label className="pb-2">Project Description</label>
-                                            <textarea className="form-control" value={ projectDescription } onChange={ (e) => setProjectDescription(e.target.value) } rows="2" />
-                                        </div>
-                                        <div className="col">
-                                            <label className="pb-2">Objectives</label>
-                                            <textarea className="form-control" value={ objectives } onChange={ (e) => setObjectives(e.target.value) } rows="2" />
-                                        </div>
-                                        <div className="col">
                                             <label className="pb-2">Project Leader</label>
                                             <input type="text" className="form-control" value={ projectLeader } onChange={ (e) => setProjectLeader(e.target.value) } />
                                         </div>
+                                    </div>
+                                    <div className="row pt-3">
                                         <div className="col">
                                             <label className="pb-2">Email Address</label>
                                             <input type="email" className="form-control" value={ emailAddress } onChange={ (e) => setEmailAddress(e.target.value) } />
@@ -488,23 +504,27 @@ const AddProjectModal = () => {
                                             <label className="pb-2">Contact Number</label>
                                             <input type="number" className="form-control" value={ contactNumber } onChange={ (e) => setContactNumber(e.target.value) } />
                                         </div>
-                                    </div>
-                                    <div className="row pt-3">
                                         <div className="col">
-                                            <label className="pb-2">Implementing Agency</label>
-                                            <input type="text" className="form-control" value={ implementingAgency } onChange={ (e) => setImplementingAgency(e.target.value) } />
+                                            <label className="pb-2">Address</label>
+                                            <input type="text" className="form-control" value={ address } onChange={ (e) => setAddress(e.target.value) } />
                                         </div>
                                         <div className="col">
                                             <label className="pb-2">Cooperating Agency</label>
                                             <input type="text" className="form-control" value={ cooperatingAgency } onChange={ (e) => setCooperatingAgency(e.target.value) } />
                                         </div>
+                                    </div>
+                                    <div className="row pt-3">
+                                        <div className="col">
+                                            <label className="pb-2">Objectives</label>
+                                            <textarea className="form-control" value={ objectives } onChange={ (e) => setObjectives(e.target.value) } rows="2" />
+                                        </div>
+                                        <div className="col">
+                                            <label className="pb-2">Project Description</label>
+                                            <textarea className="form-control" value={ projectDescription } onChange={ (e) => setProjectDescription(e.target.value) } rows="2" />
+                                        </div>
                                         <div className="col">
                                             <label className="pb-2">Smallest Unit</label>
                                             <input type="text" className="form-control" value={ smallestUnit } onChange={ (e) => setSmallestUnit(e.target.value) } />
-                                        </div>
-                                        <div className="col">
-                                            <label className="pb-2">Address</label>
-                                            <input type="text" className="form-control" value={ address } onChange={ (e) => setAddress(e.target.value) } />
                                         </div>
                                     </div>
                                     <div className="row pt-3">
@@ -539,24 +559,6 @@ const AddProjectModal = () => {
                                                 <li className="dropdown-item" onClick={(e) => setRegion(e.target.innerText)}>Cordillera Administrative Region (CAR)</li>
                                                 <li className="dropdown-item" onClick={(e) => setRegion(e.target.innerText)}>Autonomous Region in Muslim Mindanao (ARMM)</li>
                                                 <li className="dropdown-item" onClick={(e) => setRegion(e.target.innerText)}>Region XIII (Caraga)</li>
-                                            </ul>
-                                        </div>
-                                        <div className="col">
-                                            <label className="pb-2">Funding</label>
-                                            <input
-                                                className="form-control w-100 dropdown-toggle"
-                                                id="dropFunding"
-                                                data-bs-toggle="dropdown"
-                                                aria-haspopup="true"
-                                                aria-expanded="false"
-                                                value={funding}
-                                                onChange={(e) => setFunding(e.target.value)}
-                                                placeholder='Select Funding'
-                                                readOnly
-                                            />
-                                            <ul className="dropdown-menu p-0" aria-labelledby="dropFunding">
-                                                <li className="dropdown-item" onClick={handleFundingChange}>DOST GIA</li>
-                                                <li className="dropdown-item" onClick={handleFundingChange}>PCAARRD GIA</li>
                                             </ul>
                                         </div>
                                     </div>
