@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
 import './Dashboard.css';
 import './DecisionSupport.css';
@@ -10,6 +10,33 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 import { listImportedProjects, listImportedRows, parseImportedAmount } from '../firestoreImports';
+
+// The Mapbox style used for the projects map.
+const MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12';
+
+// Token-free fallback. When the Mapbox token is rejected, expired or over its
+// monthly limit the style never loads and the canvas stays blank, so the map
+// falls back to OpenStreetMap tiles instead of showing an empty white box.
+const OSM_FALLBACK_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  },
+  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+};
+
+// A rejected or exhausted Mapbox token fails the whole style request, while a
+// single missing tile should not throw the map away.
+const isMapboxTokenFailure = (error) => {
+  if ([401, 403, 429].includes(error?.status)) return true;
+  const message = String(error?.message || '');
+  return /access token|invalid token|not authorized|quota|limit reached|monthly/i.test(message);
+};
 
 const regionCoordinates = {
   "Region I (Ilocos Region)": [120.6200, 16.0832],
@@ -83,6 +110,10 @@ const Dashboard = ({ sidebarExpanded }) => {
   const [conceptProposals, setConceptProposals] = useState([]);
   const [iddProposals, setIddProposals] = useState([]);
   const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
+  const renderMarkersRef = useRef(() => {});
+  const [mapNotice, setMapNotice] = useState('');
   const chartContainerRef = useRef(null);
   const [selectedYears, setSelectedYears] = useState([]);
   const [selectedYearsProposal, setSelectedYearsProposal] = useState([]);
@@ -150,34 +181,13 @@ const Dashboard = ({ sidebarExpanded }) => {
     getIddProposals();
   }, []);
 
-  useEffect(() => {
-    let animationTimeout;
-    const animateChart = () => {
-      // Animate the chart after a delay
-      animationTimeout = setTimeout(() => {
-        // Render the chart animation
-        // Then initialize the map
-        initializeMap();
-      }, 500); // Adjust the delay as needed
-    };
+  // The region markers are re-drawn whenever the data or the filters change.
+  const renderRegionMarkers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
 
-    animateChart();
-
-    return () => clearTimeout(animationTimeout);
-  }, [info, selectedRegionFilters]);
-
-  const initializeMap = () => {
-    if (!hasValidMapboxToken || !mapContainerRef.current) {
-      return;
-    }
-
-    mapboxgl.accessToken = mapboxToken;
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [122.4376, 12.3674],
-      zoom: 5,
-    });
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
 
     const filteredProjects = info
       .filter(project => normalizeStatus(project.status || project.remarks) !== "Terminated")
@@ -212,16 +222,79 @@ const Dashboard = ({ sidebarExpanded }) => {
         const popup = new mapboxgl.Popup({ offset: 25, closeOnClick: true, closeButton: false })
           .setDOMContent(popupContent);
 
-        new mapboxgl.Marker({ color: 'red' })
+        const marker = new mapboxgl.Marker({ color: 'red' })
           .setLngLat(coordinates)
           .addTo(map)
           .setPopup(popup)
           .togglePopup();
+
+        markersRef.current.push(marker);
       }
     });
+  }, [info, selectedRegionFilters, navigate]);
 
-    return () => map.remove();
-  };
+  useEffect(() => {
+    renderMarkersRef.current = renderRegionMarkers;
+  }, [renderRegionMarkers]);
+
+  // The map is created once. A second map on the same container leaves the
+  // canvas blank, so later data only refreshes the markers.
+  useEffect(() => {
+    const initializeMap = () => {
+      if (!mapContainerRef.current) return;
+
+      if (!hasValidMapboxToken) {
+        setMapNotice('Mapbox token is missing. Showing the OpenStreetMap map instead.');
+      }
+
+      mapboxgl.accessToken = mapboxToken || '';
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: hasValidMapboxToken ? MAPBOX_STYLE : OSM_FALLBACK_STYLE,
+        center: [122.4376, 12.3674],
+        zoom: 5,
+      });
+      mapRef.current = map;
+
+      map.on('load', () => renderMarkersRef.current());
+
+      map.on('error', (event) => {
+        const error = event?.error;
+
+        // The Mapbox style failed as a whole (token rejected, expired or over
+        // the monthly limit). Swap in the token-free style so the map is still
+        // usable instead of staying blank.
+        if (isMapboxTokenFailure(error)) {
+          console.warn('Mapbox is unavailable, falling back to OpenStreetMap:', error?.message || error);
+          setMapNotice('Mapbox is unavailable (token rejected or limit reached). Showing the OpenStreetMap map instead.');
+          map.setStyle(OSM_FALLBACK_STYLE);
+          renderMarkersRef.current();
+          return;
+        }
+
+        console.error('Map error:', error);
+      });
+    };
+
+    // Wait for the dashboard animation before the map is created.
+    const animationTimeout = setTimeout(initializeMap, 500);
+
+    return () => {
+      clearTimeout(animationTimeout);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      markersRef.current = [];
+    };
+    // The token comes from the build environment and never changes at runtime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    renderRegionMarkers();
+  }, [renderRegionMarkers]);
+
 
 
   const getInfo = async () => {
@@ -2026,16 +2099,17 @@ const Dashboard = ({ sidebarExpanded }) => {
                         height: '100%',
                         width: '100%',
                         borderRadius: '10px',
-                        display: hasValidMapboxToken ? 'block' : 'grid',
-                        placeItems: 'center',
-                        padding: '2rem',
-                        textAlign: 'center',
+                        position: 'relative',
+                        overflow: 'hidden',
                       }}
                     >
-                      {!hasValidMapboxToken && (
-                        <p className="text-muted mb-0">
-                          Add your real Mapbox public token to frontend/.env.local, then restart the frontend.
-                        </p>
+                      {mapNotice && (
+                        <div
+                          className="position-absolute m-2 px-2 py-1 rounded"
+                          style={{ zIndex: 5, top: 0, left: 0, background: '#fff3cd', color: '#856404', fontSize: '12px' }}
+                        >
+                          {mapNotice}
+                        </div>
                       )}
                     </div> {/* Ensure map container fills the parent */}
                   </div>
