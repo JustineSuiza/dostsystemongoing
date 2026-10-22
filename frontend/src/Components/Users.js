@@ -274,7 +274,7 @@ const Users = ({ sidebarExpanded }) => {
     { name: 'Email', selector: (row) => row.email, sortable: true, wrap: true },
     {
       name: 'User Level',
-      selector: (row) => row.user_lvl === '0' ? 'Administrator' : row.user_lvl === '1' ? 'Approved' : 'Pending',
+      selector: (row) => row.user_lvl === '0' ? 'Administrator' : row.user_lvl === '1' ? 'Employee' : 'Pending',
       sortable: true,
       wrap: true,
     },
